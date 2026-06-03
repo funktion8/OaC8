@@ -317,6 +317,7 @@ class NaCLocalWebApp:
               <h2>Was passiert als Nächstes?</h2>
               <ul class="link-list">
                 <li><span>notariat8 prüft die Administrations-E-Mail für den ersten NaC-Zugang.</span></li>
+                <li><span>In diesem Schritt wird keine E-Mail automatisch versendet.</span></li>
                 <li><span>Sie müssen in Oracle Cloud nicht selbst arbeiten; die technische Einrichtung läuft über notariat8.</span></li>
                 <li><span>Keine Mandatsdaten: Diese Seite sammelt keine Urkunden, Ausweise, Akten oder Geschäftswerte.</span></li>
               </ul>
@@ -620,7 +621,8 @@ def build_customer_readiness_page(query: str) -> str:
     context_query = {"audience": "customer"} if public_context else {}
     domain_hint = _optional_query_text(params, "domain_hint", max_length=120) or "kanzlei-notariat.example"
     tenant_slug = _optional_query_text(params, "tenant_slug", max_length=80) or _tenant_slug_from_domain_hint(domain_hint)
-    admin_email = _optional_query_text(params, "admin_email", max_length=160) or f"admin@{domain_hint.strip().lower().rstrip('.')}"
+    admin_email = _optional_query_text(params, "admin_email", max_length=160)
+    admin_email_provided = bool(admin_email)
     readiness = check_domain_ready(domain=domain_hint, tenant_slug=tenant_slug, admin_email=admin_email)
     verification = readiness["verification"]
     dns_check = build_dns_check_result(
@@ -630,40 +632,78 @@ def build_customer_readiness_page(query: str) -> str:
         resolver_error="not_found",
     )
     check_query = urlencode(
-        {
+        _present_query_values({
             **context_query,
             "domain": readiness["domain"],
             "tenant_slug": readiness["tenant_slug"],
             "admin_email": readiness["admin_email"],
-        }
+        })
     )
     preview_query = urlencode(
-        {
+        _present_query_values({
             "domain": readiness["domain"],
             "tenant_slug": readiness["tenant_slug"],
             "admin_email": readiness["admin_email"],
-        }
+        })
     )
     resume_query = urlencode(
-        {
+        _present_query_values({
             **context_query,
             "domain_hint": readiness["domain"],
             "tenant_slug": readiness["tenant_slug"],
             "admin_email": readiness["admin_email"],
-        }
+        })
     )
     nav = _customer_onboarding_nav(resume_query) if public_context else (
         '<nav class="topline"><a href="/">← Übersicht</a><span><a href="/admin/onboarding">Admin-Queue</a></span></nav>'
     )
     slug_label = "NaC-Kennung" if public_context else "Tenant-Slug"
+    admin_email_line = (
+        f'<p><strong>Administrations-E-Mail:</strong> {html.escape(readiness["admin_email"])}</p>'
+        if admin_email_provided
+        else "<p><strong>Administrations-E-Mail:</strong> noch nicht angegeben</p>"
+    )
+    status_label = "bereit" if readiness["ready"] else "blockiert"
+    if public_context and not admin_email_provided:
+        status_label = "E-Mail offen"
     admin_action = ""
     if not public_context:
         admin_action = (
             f'<a class="button-link" href="/admin/onboarding/provisioning-preview?'
             f'{html.escape(preview_query, quote=True)}">Admin-Dry-Run vorbereiten</a>'
         )
+    dns_action = (
+        f'<a class="button-link" href="/onboarding/dns-check?{html.escape(check_query, quote=True)}">DNS jetzt prüfen</a>'
+        if admin_email_provided or not public_context
+        else "<p>Die DNS-Prüfung startet erst nach Angabe der Administrations-E-Mail.</p>"
+    )
+    admin_email_form = ""
+    if public_context and not admin_email_provided:
+        admin_email_form = f"""
+        <section class="notice">
+          <h2>Administrations-E-Mail angeben</h2>
+          <p>Tragen Sie die E-Mail-Adresse der Person ein, die den ersten NaC-Zugang administrieren soll.
+          notariat8 leitet diese Adresse nicht aus der Domain ab; in diesem Schritt wird keine E-Mail automatisch versendet.</p>
+          <form class="readiness-form" method="get" action="/onboarding/readiness">
+            <input type="hidden" name="audience" value="customer">
+            <input type="hidden" name="domain_hint" value="{html.escape(readiness["domain"], quote=True)}">
+            <input type="hidden" name="tenant_slug" value="{html.escape(readiness["tenant_slug"], quote=True)}">
+            <label>Administrations-E-Mail
+              <input type="email" name="admin_email" autocomplete="email" required>
+            </label>
+            <button type="submit">E-Mail übernehmen</button>
+          </form>
+        </section>
+        """
     guidance_items = (
         """
+        <li><span>Geben Sie zuerst die Administrations-E-Mail ein; notariat8 nimmt dafür keine Standardadresse an.</span></li>
+        <li><span>Danach tragen Sie den DNS-TXT-Eintrag bei Ihrem DNS-Anbieter ein oder geben ihn an Ihre IT weiter.</span></li>
+        <li><span>Nach erfolgreicher DNS-Prüfung bereitet notariat8 die Administrations-Einladung vor.</span></li>
+        <li><span>Keine Mandatsdaten: Diese Seite sammelt keine Urkunden, Ausweise, Akten oder Geschäftswerte.</span></li>
+        """
+        if public_context and not admin_email_provided
+        else """
         <li><span>Tragen Sie den DNS-TXT-Eintrag bei Ihrem DNS-Anbieter ein oder geben Sie ihn an Ihre IT weiter.</span></li>
         <li><span>Nach erfolgreicher DNS-Prüfung bereitet notariat8 die Administrations-Einladung vor.</span></li>
         <li><span>Keine Mandatsdaten: Diese Seite sammelt keine Urkunden, Ausweise, Akten oder Geschäftswerte.</span></li>
@@ -693,15 +733,16 @@ def build_customer_readiness_page(query: str) -> str:
         <h2>Ihre Domain</h2>
         <p><strong>Domain:</strong> {html.escape(readiness["domain"])}</p>
         <p><strong>{html.escape(slug_label)}:</strong> {html.escape(readiness["tenant_slug"])}</p>
-        <p><strong>Administrations-E-Mail:</strong> {html.escape(readiness["admin_email"])}</p>
-        <p><strong>Status:</strong> {html.escape("bereit" if readiness["ready"] else "blockiert")}</p>
+        {admin_email_line}
+        <p><strong>Status:</strong> {html.escape(status_label)}</p>
       </section>
+      {admin_email_form}
       <section>
         <h2>DNS-TXT</h2>
         <p><strong>Name:</strong> <code>{html.escape(verification["dns_record_name"])}</code></p>
         <p><strong>Wert:</strong> <code>{html.escape(verification["dns_record_value"])}</code></p>
         <div class="toolbar">
-          <a class="button-link" href="/onboarding/dns-check?{html.escape(check_query, quote=True)}">DNS jetzt prüfen</a>
+          {dns_action}
           {admin_action}
           <a class="inline-link" href="/onboarding/readiness?{html.escape(resume_query, quote=True)}">später erneut öffnen</a>
         </div>
@@ -1651,6 +1692,10 @@ def _is_notariat8_source(source: str) -> bool:
     return source in {"notariat8", "www-n8"}
 
 
+def _present_query_values(values: dict[str, str]) -> dict[str, str]:
+    return {key: value for key, value in values.items() if value}
+
+
 def _is_public_prospect_context(*, source: str, entry: str, audience: str) -> bool:
     return audience == "customer" or (_is_notariat8_source(source) and entry == "prospect")
 
@@ -1801,6 +1846,9 @@ def _css() -> str:
     .quote-form label { display: grid; gap: 6px; font-weight: 700; font-size: 13px; }
     .quote-form input, .quote-form select { width: 100%; border: 1px solid var(--line); border-radius: 6px; padding: 9px 10px; font: inherit; background: #fff; }
     .quote-result { display: block; margin-top: 14px; padding: 12px; border: 1px solid var(--line); border-radius: 8px; background: #fbfcfd; color: var(--ink); overflow-wrap: anywhere; }
+    .readiness-form { display: grid; gap: 10px; max-width: 560px; }
+    .readiness-form label { display: grid; gap: 6px; font-weight: 700; font-size: 13px; }
+    .readiness-form input { width: 100%; border: 1px solid var(--line); border-radius: 6px; padding: 9px 10px; font: inherit; background: #fff; }
     .cost-flow { list-style: none; counter-reset: step; display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; margin: 0; padding: 0; }
     .cost-flow li { counter-increment: step; position: relative; border: 1px solid var(--line); border-radius: 8px; background: #fff; padding: 14px 14px 14px 48px; min-height: 86px; }
     .cost-flow li::before { content: counter(step); position: absolute; left: 14px; top: 14px; width: 24px; height: 24px; border-radius: 50%; background: var(--accent); color: #fff; display: grid; place-items: center; font-size: 13px; font-weight: 800; }

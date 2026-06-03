@@ -377,13 +377,17 @@ class NaCLocalWebTests(unittest.TestCase):
         self.assertEqual(content_type, "text/html; charset=utf-8")
         self.assertIn("Domain-Readiness", html)
         self.assertIn("DNS-TXT", html)
-        self.assertIn("DNS jetzt prüfen", html)
         self.assertIn("Keine Mandatsdaten", html)
         self.assertIn("notariat8", html)
         self.assertIn("kanzlei-notariat.example", html)
-        self.assertIn("admin@kanzlei-notariat.example", html)
         self.assertIn("NaC-Kennung", html)
+        self.assertIn("Administrations-E-Mail angeben", html)
+        self.assertIn('name="admin_email"', html)
+        self.assertIn("keine E-Mail automatisch versendet", html)
         self.assertIn("noch offen", html)
+        self.assertNotIn("DNS jetzt prüfen", html)
+        self.assertNotIn("admin@kanzlei-notariat.example", html)
+        self.assertNotIn("admin%40kanzlei-notariat.example", html)
         self.assertNotIn("NaC App-Einstieg", html)
         self.assertNotIn("API-Kante", html)
         self.assertNotIn("Guardrails", html)
@@ -395,6 +399,25 @@ class NaCLocalWebTests(unittest.TestCase):
         self.assertNotIn("Notariat8", html)
         self.assertNotIn("pending", html)
         self.assertNotIn("propagation", html)
+
+    def test_www_n8_prospect_readiness_uses_explicit_admin_email_only(self) -> None:
+        app = NaCLocalWebApp(REPO_ROOT)
+
+        status, content_type, body = app.handle(
+            "/onboarding/readiness"
+            "?audience=customer"
+            "&domain_hint=kanzlei-notariat.example"
+            "&tenant_slug=kanzlei-notariat"
+            "&admin_email=verwaltung@kanzlei-notariat.example"
+        )
+        html = body.decode("utf-8")
+
+        self.assertEqual(status, 200)
+        self.assertEqual(content_type, "text/html; charset=utf-8")
+        self.assertIn("verwaltung@kanzlei-notariat.example", html)
+        self.assertIn("DNS jetzt prüfen", html)
+        self.assertIn("admin_email=verwaltung%40kanzlei-notariat.example", html)
+        self.assertNotIn("admin@kanzlei-notariat.example", html)
 
     def test_www_n8_prospect_dns_check_stays_customer_facing(self) -> None:
         def fake_resolver(record_name: str) -> dict:
@@ -423,6 +446,7 @@ class NaCLocalWebTests(unittest.TestCase):
         self.assertIn("notariat8", html)
         self.assertIn("bestätigt", html)
         self.assertIn("Erneut prüfen", html)
+        self.assertIn("keine E-Mail automatisch versendet", html)
         self.assertNotIn("verified", html)
         self.assertNotIn("www-n8", html)
         self.assertNotIn("Admin-Queue", html)
