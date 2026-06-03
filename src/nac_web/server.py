@@ -223,6 +223,11 @@ class NaCLocalWebApp:
 
     def _tenant_dns_check_page(self, query: str) -> str:
         params = parse_qs(query, keep_blank_values=True)
+        source = _optional_query_text(params, "source", max_length=40)
+        entry = _optional_query_text(params, "entry", max_length=40)
+        audience = _optional_query_text(params, "audience", max_length=40)
+        public_context = _is_public_prospect_context(source=source, entry=entry, audience=audience)
+        context_query = {"audience": "customer"} if public_context else {}
         readiness = check_domain_ready(
             domain=_query_text(params, "domain"),
             tenant_slug=_query_text(params, "tenant_slug"),
@@ -236,6 +241,7 @@ class NaCLocalWebApp:
         )
         readiness_query = urlencode(
             {
+                **context_query,
                 "domain_hint": readiness["domain"],
                 "tenant_slug": readiness["tenant_slug"],
                 "admin_email": readiness["admin_email"],
@@ -243,6 +249,7 @@ class NaCLocalWebApp:
         )
         dns_query = urlencode(
             {
+                **context_query,
                 "domain": readiness["domain"],
                 "tenant_slug": readiness["tenant_slug"],
                 "admin_email": readiness["admin_email"],
@@ -264,13 +271,60 @@ class NaCLocalWebApp:
             f"<li><span>{html.escape(str(finding))}</span></li>" for finding in findings
         ) or "<li><span>keine Blocker</span></li>"
         admin_action = ""
-        if readiness["ready"] and result["status"] == "verified":
+        if not public_context and readiness["ready"] and result["status"] == "verified":
             admin_action = (
                 f'<a class="button-link" href="/admin/onboarding/provisioning-preview?'
                 f'{html.escape(preview_query, quote=True)}">Admin-Dry-Run vorbereiten</a>'
             )
+        nav = _customer_onboarding_nav(readiness_query) if public_context else (
+            f'<nav class="topline"><a href="/onboarding/readiness?{html.escape(readiness_query, quote=True)}">← Readiness</a>'
+            '<span><a href="/admin/onboarding">Admin-Queue</a></span></nav>'
+        )
+        if public_context:
+            confirmed = result["status"] == "verified"
+            headline = "Domain bestätigt" if confirmed else "DNS noch nicht bestätigt"
+            status_label = "bestätigt" if confirmed else "ausstehend"
+            guidance = (
+                "Der DNS-TXT-Eintrag wurde gefunden. notariat8 kann die Administrations-Einladung vorbereiten."
+                if confirmed
+                else "Der DNS-TXT-Eintrag wurde noch nicht gefunden. Prüfen Sie den Eintrag bei Ihrem DNS-Anbieter und versuchen Sie es später erneut."
+            )
+            body = f"""
+            {nav}
+            <section class="hero">
+              <p class="eyebrow">notariat8 Domain-Check</p>
+              <h1>DNS-Prüfergebnis</h1>
+              <p>Hier sehen Sie, ob Ihre Domain für NaC bestätigt wurde. Es werden nur Domain,
+              Administrations-E-Mail und DNS-TXT-Challenge geprüft.</p>
+            </section>
+            <div class="grid">
+              <section class="notice">
+                <h2>{html.escape(headline)}</h2>
+                <p><strong>Status:</strong> {html.escape(status_label)}</p>
+                <p>{html.escape(guidance)}</p>
+                <div class="toolbar">
+                  <a class="button-link" href="/onboarding/dns-check?{html.escape(dns_query, quote=True)}">Erneut prüfen</a>
+                  <a class="inline-link" href="/onboarding/readiness?{html.escape(readiness_query, quote=True)}">Domain-Readiness öffnen</a>
+                </div>
+              </section>
+              <section>
+                <h2>DNS-TXT</h2>
+                <p><strong>Name:</strong> <code>{html.escape(result["expected"]["name"])}</code></p>
+                <p><strong>Wert:</strong> <code>{html.escape(result["expected"]["value"])}</code></p>
+              </section>
+            </div>
+            <section>
+              <h2>Was passiert als Nächstes?</h2>
+              <ul class="link-list">
+                <li><span>notariat8 prüft die Administrations-E-Mail für den ersten NaC-Zugang.</span></li>
+                <li><span>Sie müssen in Oracle Cloud nicht selbst arbeiten; die technische Einrichtung läuft über notariat8.</span></li>
+                <li><span>Keine Mandatsdaten: Diese Seite sammelt keine Urkunden, Ausweise, Akten oder Geschäftswerte.</span></li>
+              </ul>
+            </section>
+            """
+            return _layout("NaC DNS-Prüfergebnis", body)
         body = f"""
-        <nav class="topline"><a href="/onboarding/readiness?{html.escape(readiness_query, quote=True)}">← Readiness</a><span><a href="/admin/onboarding">Admin-Queue</a></span></nav>
+        {nav}
         <section class="hero">
           <p class="eyebrow">Live DNS</p>
           <h1>DNS-Prüfergebnis</h1>
@@ -406,19 +460,19 @@ def build_home_page(repo_root: Path) -> str:
 
 def build_www_n8_handoff_page(query: str) -> str | None:
     params = parse_qs(query, keep_blank_values=True)
-    if _optional_query_text(params, "source") != "www-n8":
+    if not _is_notariat8_source(_optional_query_text(params, "source")):
         return None
     entry = _optional_query_text(params, "entry")
     if entry == "customer":
         tenant_hint = _optional_query_text(params, "tenant_hint", max_length=120)
         hint = html.escape(tenant_hint) if tenant_hint else "nicht übergeben"
-        login_href = "/login?" + urlencode({"source": "www-n8", "entry": "customer", "tenant_hint": tenant_hint})
+        login_href = "/login?" + urlencode({"source": "notariat8", "entry": "customer", "tenant_hint": tenant_hint})
         body = f"""
         <nav class="topline"><a href="/">← Übersicht</a><span><a href="/healthz">Health</a></span></nav>
         <section class="hero">
           <p class="eyebrow">NaC App-Einstieg</p>
           <h1>Bestandskunde</h1>
-          <p>Der Übergang von <code>www-n8</code> wurde empfangen. Der Tenant-Hinweis ist nur eine Vorsortierung
+          <p>Der Übergang von <code>notariat8</code> wurde empfangen. Der Tenant-Hinweis ist nur eine Vorsortierung
           und kein Tenant-Autorisierungsnachweis; die eigentliche Anmeldung bleibt am OCI-IdP-Login.</p>
         </section>
         <div class="grid">
@@ -440,33 +494,11 @@ def build_www_n8_handoff_page(query: str) -> str | None:
         return _layout("NaC App-Einstieg", body)
     if entry == "prospect":
         domain_hint = _optional_query_text(params, "domain_hint", max_length=120)
-        hint = html.escape(domain_hint) if domain_hint else "nicht übergeben"
-        readiness_href = "/onboarding/readiness?" + urlencode({"domain_hint": domain_hint})
-        body = f"""
-        <nav class="topline"><a href="/">← Übersicht</a><span><a href="{html.escape(readiness_href, quote=True)}">Readiness öffnen</a><a href="/api/tenant/domain-check">Domain API</a></span></nav>
-        <section class="hero">
-          <p class="eyebrow">NaC App-Einstieg</p>
-          <h1>Neukunde</h1>
-          <p>Der Domain-Hinweis aus <code>www-n8</code> wurde empfangen. Die Domain-Readiness wird erst
-          serverseitig mit Tenant-Slug und bestätigter Admin-Adresse geprüft.</p>
-        </section>
-        <div class="grid">
-          <section class="notice">
-            <h2>Domain-Readiness</h2>
-            <p><strong>Domain-Hinweis:</strong> {hint}</p>
-            <p><a class="inline-link" href="{html.escape(readiness_href, quote=True)}">Domain-Readiness in NaC vorbereiten</a></p>
-            <p><strong>API-Kante:</strong> <code>/api/tenant/domain-check</code></p>
-          </section>
-          <section>
-            <h2>Guardrails</h2>
-            <ul class="link-list">
-              <li><span>Der Hinweis bleibt unverbindlich, bis DNS- und Owner-Freigaben geprüft sind.</span></li>
-              <li><span>OCI-Identity-Schreiboperationen bleiben an Owner-Review und Apply-Gates gebunden.</span></li>
-            </ul>
-          </section>
-        </div>
-        """
-        return _layout("NaC App-Einstieg", body)
+        readiness_params = {"source": "notariat8", "entry": "prospect"}
+        if domain_hint:
+            readiness_params["domain_hint"] = domain_hint
+        readiness_query = urlencode(readiness_params)
+        return build_customer_readiness_page(readiness_query)
     return None
 
 
@@ -475,7 +507,7 @@ def build_login_page(query: str) -> str:
     source = _optional_query_text(params, "source")
     entry = _optional_query_text(params, "entry")
     tenant_hint = _optional_query_text(params, "tenant_hint", max_length=120)
-    context_label = "www-n8 Bestandskunde" if source == "www-n8" and entry == "customer" else "direkter Login-Einstieg"
+    context_label = "notariat8 Bestandskunde" if _is_notariat8_source(source) and entry == "customer" else "direkter Login-Einstieg"
     hint = html.escape(tenant_hint) if tenant_hint else "nicht übergeben"
     body = f"""
     <nav class="topline"><a href="/">← Übersicht</a><span><a href="/api/tenant/login-intent">Login Intent API</a></span></nav>
@@ -569,7 +601,7 @@ def build_admin_onboarding_page() -> str:
 
 def _onboarding_state_gate(state: str) -> str:
     labels = {
-        "submitted": "Domain-Hinweis aus www-n8 eingegangen",
+        "submitted": "Domain-Hinweis aus notariat8 eingegangen",
         "dns_challenge_issued": "DNS-TXT-Challenge ausgegeben",
         "domain_verified": "DNS-TXT bestätigt",
         "saas_admin_review": "nac-saas-owner prüft Zielbild",
@@ -581,6 +613,11 @@ def _onboarding_state_gate(state: str) -> str:
 
 def build_customer_readiness_page(query: str) -> str:
     params = parse_qs(query, keep_blank_values=True)
+    source = _optional_query_text(params, "source", max_length=40)
+    entry = _optional_query_text(params, "entry", max_length=40)
+    audience = _optional_query_text(params, "audience", max_length=40)
+    public_context = _is_public_prospect_context(source=source, entry=entry, audience=audience)
+    context_query = {"audience": "customer"} if public_context else {}
     domain_hint = _optional_query_text(params, "domain_hint", max_length=120) or "kanzlei-notariat.example"
     tenant_slug = _optional_query_text(params, "tenant_slug", max_length=80) or _tenant_slug_from_domain_hint(domain_hint)
     admin_email = _optional_query_text(params, "admin_email", max_length=160) or f"admin@{domain_hint.strip().lower().rstrip('.')}"
@@ -594,6 +631,7 @@ def build_customer_readiness_page(query: str) -> str:
     )
     check_query = urlencode(
         {
+            **context_query,
             "domain": readiness["domain"],
             "tenant_slug": readiness["tenant_slug"],
             "admin_email": readiness["admin_email"],
@@ -608,25 +646,54 @@ def build_customer_readiness_page(query: str) -> str:
     )
     resume_query = urlencode(
         {
+            **context_query,
             "domain_hint": readiness["domain"],
             "tenant_slug": readiness["tenant_slug"],
             "admin_email": readiness["admin_email"],
         }
     )
+    nav = _customer_onboarding_nav(resume_query) if public_context else (
+        '<nav class="topline"><a href="/">← Übersicht</a><span><a href="/admin/onboarding">Admin-Queue</a></span></nav>'
+    )
+    slug_label = "NaC-Kennung" if public_context else "Tenant-Slug"
+    admin_action = ""
+    if not public_context:
+        admin_action = (
+            f'<a class="button-link" href="/admin/onboarding/provisioning-preview?'
+            f'{html.escape(preview_query, quote=True)}">Admin-Dry-Run vorbereiten</a>'
+        )
+    guidance_items = (
+        """
+        <li><span>Tragen Sie den DNS-TXT-Eintrag bei Ihrem DNS-Anbieter ein oder geben Sie ihn an Ihre IT weiter.</span></li>
+        <li><span>Nach erfolgreicher DNS-Prüfung bereitet notariat8 die Administrations-Einladung vor.</span></li>
+        <li><span>Keine Mandatsdaten: Diese Seite sammelt keine Urkunden, Ausweise, Akten oder Geschäftswerte.</span></li>
+        """
+        if public_context
+        else """
+        <li><span>Nach DNS propagation kann derselbe Link erneut geprüft werden.</span></li>
+        <li><span>Nach verifizierter Domain prüft <code>nac-saas-owner</code> die Admin-Einladung und den Owner-Apply-Plan.</span></li>
+        <li><span>Keine Mandatsdaten: Diese Seite sammelt keine Urkunden, Ausweise, Akten oder Geschäftswerte.</span></li>
+        """
+    )
+    dns_status_label = dns_check["status"]
+    dns_guidance = dns_check["customer_guidance"]
+    if public_context and dns_check["status"] == "pending":
+        dns_status_label = "noch offen"
+        dns_guidance = "Der DNS-TXT-Eintrag wurde noch nicht gefunden. DNS-Änderungen können einige Minuten dauern; später erneut prüfen."
     body = f"""
-    <nav class="topline"><a href="/">← Übersicht</a><span><a href="/admin/onboarding">Admin-Queue</a></span></nav>
+    {nav}
     <section class="hero">
       <p class="eyebrow">NaC Neukunden-Onboarding</p>
       <h1>Domain-Readiness</h1>
-      <p>Startpunkt für neue Notariatskunden aus <code>www-n8</code>. Hier werden nur Domain, Admin-Adresse
-      und DNS-TXT-Challenge vorbereitet. Keine Mandatsdaten und keine Vorgangsdokumente.</p>
+      <p>Prüfen Sie hier, ob Ihre Domain für NaC vorbereitet ist. Diese Seite verwendet nur Domain,
+      Administrations-E-Mail und DNS-TXT-Challenge. Keine Mandatsdaten und keine Vorgangsdokumente.</p>
     </section>
     <div class="grid">
       <section class="notice">
         <h2>Ihre Domain</h2>
         <p><strong>Domain:</strong> {html.escape(readiness["domain"])}</p>
-        <p><strong>Tenant-Slug:</strong> {html.escape(readiness["tenant_slug"])}</p>
-        <p><strong>Admin-E-Mail:</strong> {html.escape(readiness["admin_email"])}</p>
+        <p><strong>{html.escape(slug_label)}:</strong> {html.escape(readiness["tenant_slug"])}</p>
+        <p><strong>Administrations-E-Mail:</strong> {html.escape(readiness["admin_email"])}</p>
         <p><strong>Status:</strong> {html.escape("bereit" if readiness["ready"] else "blockiert")}</p>
       </section>
       <section>
@@ -635,19 +702,17 @@ def build_customer_readiness_page(query: str) -> str:
         <p><strong>Wert:</strong> <code>{html.escape(verification["dns_record_value"])}</code></p>
         <div class="toolbar">
           <a class="button-link" href="/onboarding/dns-check?{html.escape(check_query, quote=True)}">DNS jetzt prüfen</a>
-          <a class="button-link" href="/admin/onboarding/provisioning-preview?{html.escape(preview_query, quote=True)}">Admin-Dry-Run vorbereiten</a>
+          {admin_action}
           <a class="inline-link" href="/onboarding/readiness?{html.escape(resume_query, quote=True)}">später erneut öffnen</a>
         </div>
       </section>
     </div>
     <section>
       <h2>Letzter Check</h2>
-      <p><strong>DNS-Status:</strong> {html.escape(dns_check["status"])}</p>
-      <p>{html.escape(dns_check["customer_guidance"])}</p>
+      <p><strong>DNS-Status:</strong> {html.escape(dns_status_label)}</p>
+      <p>{html.escape(dns_guidance)}</p>
       <ul class="link-list">
-        <li><span>Nach DNS propagation kann derselbe Link erneut geprüft werden.</span></li>
-        <li><span>Nach verifizierter Domain prüft <code>nac-saas-owner</code> die Admin-Einladung und den Owner-Apply-Plan.</span></li>
-        <li><span>Keine Mandatsdaten: Diese Seite sammelt keine Urkunden, Ausweise, Akten oder Geschäftswerte.</span></li>
+        {guidance_items}
       </ul>
     </section>
     """
@@ -1580,6 +1645,24 @@ def _optional_query_text(params: dict[str, list[str]], key: str, *, max_length: 
     if max_length is not None:
         return value[:max_length]
     return value
+
+
+def _is_notariat8_source(source: str) -> bool:
+    return source in {"notariat8", "www-n8"}
+
+
+def _is_public_prospect_context(*, source: str, entry: str, audience: str) -> bool:
+    return audience == "customer" or (_is_notariat8_source(source) and entry == "prospect")
+
+
+def _customer_onboarding_nav(readiness_query: str) -> str:
+    escaped_query = html.escape(readiness_query, quote=True)
+    return (
+        '<nav class="topline">'
+        '<a href="https://www.notariat8.de/">← notariat8.de</a>'
+        f'<span><a href="/onboarding/readiness?{escaped_query}">Domain-Readiness</a></span>'
+        "</nav>"
+    )
 
 
 def _optional_query_bool(params: dict[str, list[str]], key: str, *, default: bool) -> bool:
