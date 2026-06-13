@@ -182,3 +182,52 @@ Expected: PASS.
 git -C /home/ubuntu/src/oci-landing-zone add tests/test_cloud_native_runtime_iac.py infra/modules/cloud_native_runtime/main.tf runbooks/no-ssh-functions-release.md
 git -C /home/ubuntu/src/oci-landing-zone commit -m "fix: route auth callback to stateful function"
 ```
+
+### Task 3: Verification And GitHub Tracking
+
+**Files:**
+- Verify: `/home/ubuntu/src/private/NaC`
+- Verify: `/home/ubuntu/src/oci-landing-zone`
+
+- [ ] **Step 1: Run NaC focused verification**
+
+```bash
+env PYTHONPATH=src /home/ubuntu/.venvs/nac/bin/python -m unittest tests.test_oci_functions_adapter tests.test_nac_web
+```
+
+Expected: PASS.
+
+- [ ] **Step 2: Run NaC quality gate**
+
+```bash
+GITHUB_BASE_REF=main /home/ubuntu/.venvs/nac/bin/python scripts/quality_gate.py --profile strict
+```
+
+Expected: PASS.
+
+- [ ] **Step 3: Run Landing Zone focused verification**
+
+```bash
+env PYTHONPATH=. /home/ubuntu/.venvs/nac/bin/python -m unittest tests.test_cloud_native_runtime_iac
+```
+
+Expected: PASS.
+
+- [ ] **Step 4: Open protected PRs**
+
+Open one PR in `notariat8/NaC` against `main` for the NaC route-boundary
+change, and one PR in `notariat8/oci-landing-zone` against `main` for the API
+Gateway route split.
+
+Both PR bodies must reference `notariat8/NaC#128` and state:
+
+```markdown
+No OCI write is performed by this PR. Runtime deployment and Resource Manager
+Apply remain owner-gated.
+```
+
+- [ ] **Step 5: Update Issue #128**
+
+Comment with the PR links, test results, and the next expected owner actions:
+review/merge the PRs, then release the NaC image, then Resource Manager
+no-apply plan, then owner-gated Apply.
