@@ -18,13 +18,13 @@ vorab freigegebene Demo-Sichten.
 | www-n8 Prozessmodell | `https://notariat8.de/prozessmodell.html` im frischen oder bereits geladenen Browser-Tab öffnen. | Prozessmodell ist erreichbar; Immobilienkaufvertrag, Gate und kritischer Pfad sind sichtbar. | Bereits geladenen Tab oder cached screenshot zeigen; nicht live deployen. |
 | App Health | `https://app.notariat8.de/healthz` per Browser oder read-only curl öffnen. | Kurz, nicht-sensitiv, kein Secret, kein Mandatsbezug. | Health-Tab schließen und Workspace-Grenze zeigen. |
 | Workspace ohne Session | `https://app.notariat8.de/workspace` ohne Session öffnen. | Erwartet sind `401`, `403` oder eine geschlossene Sicht: fail-closed, no workspace content, keine Workspace-Inhalte, keine Mandatsdaten. | Fail-closed als Sicherheitsnachweis erklären. |
-| Anmeldung und Portal-Start | `https://app.notariat8.de/login` nur mit freigegebenem Testnutzer fortsetzen. | Nach erfolgreicher Anmeldung erscheint die metadata-only Portal-Startseite: Anmeldung und Berechtigung bestätigt, keine Mandatsdaten geladen, vollständiger Arbeitsbereich weiterhin geschlossen. | Wenn die Anmeldung langsam ist oder geschlossen bleibt: nicht live debuggen; zum Prozessmodell und zur Workspace-Grenze wechseln. |
+| Login/OIDC und Portal-Start | `https://app.notariat8.de/login` nur mit freigegebenem Testnutzer fortsetzen. | Nach erfolgreicher Anmeldung erscheint die metadata-only Portal-Startseite: Anmeldung und Berechtigung bestätigt, keine Mandatsdaten geladen, vollständiger Arbeitsbereich weiterhin geschlossen. | Wenn die Anmeldung langsam ist oder geschlossen bleibt: nicht live debuggen; zum Prozessmodell und zur Workspace-Grenze wechseln. |
 
 ## Sprecherlinien
 
 - Speaker line: This public process view is the audited demo path.
 - Speaker line: The app entry stays protected until the approved demo sign-in is complete.
-- Speaker line: After sign-in, notariat8 shows only a metadata-only portal start; no matter data is loaded.
+- Speaker line: After sign-in, notariat8 shows only a metadata-only portal start; no case content is loaded.
 - Speaker line: A closed workspace is the expected safety result before sign-in or missing authorization.
 - Speaker line: If sign-in is slow, we continue with the process model and the protected boundary.
 
