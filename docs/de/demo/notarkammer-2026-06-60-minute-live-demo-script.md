@@ -49,7 +49,7 @@ lokale Fachsystemgrenzen und ein prüfbares NaC-Gate.
 
 ## Failover Cards
 
-Vorbereitete Screenshots und Ersatzansichten muessen im
+Vorbereitete Screenshots und Ersatzansichten müssen im
 [`Fallback-Evidence-Manifest`](notarkammer-2026-06-demo-fallback-evidence-manifest.md)
 freigegeben sein.
 
