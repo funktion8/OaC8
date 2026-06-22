@@ -28,6 +28,7 @@ class NotarkammerLiveDemoRunbookTests(unittest.TestCase):
         for language, content in runbooks.items():
             self.assertIn("Live-Test", content)
             self.assertIn("Fallback", content)
+            self.assertIn("Browser-Tabs vorab öffnen" if language == "de" else "Open Browser Tabs Beforehand", content)
             self.assertIn("Stop-Line", content)
             self.assertIn("T-03:00", content)
             self.assertIn("CET", content)
@@ -47,6 +48,31 @@ class NotarkammerLiveDemoRunbookTests(unittest.TestCase):
             self.assertIn("notarkammer-xnp-demo-contract.md", content)
             self.assertIn("notarkammer-2026-06-demo-script.md", content)
             self.assertIn("notarkammer-2026-06-demo-preflight.md", content)
+
+    def test_runbook_names_safe_browser_tab_order_for_demo(self) -> None:
+        combined = "\n".join(read_runbooks().values())
+        normalized = " ".join(combined.split())
+
+        required_terms = [
+            "Tab 1",
+            "Tab 2",
+            "Tab 3",
+            "Tab 4",
+            "Tab 5",
+            "Tab 6",
+            "notariat8.de",
+            "prozessmodell.html",
+            "onboarding/dns-check",
+            "onboarding/requests/",
+            "app.notariat8.de/login",
+            "app.notariat8.de/workspace",
+            "Keine Live-Suche",
+            "No live searching",
+            "keine Browser-Historie",
+            "no browser history",
+        ]
+        for term in required_terms:
+            self.assertIn(term, normalized)
 
     def test_runbook_states_xnp_xnotar_xjustiz_and_nac_gate_boundary(self) -> None:
         combined = "\n".join(read_runbooks().values())
