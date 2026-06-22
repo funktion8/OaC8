@@ -24,6 +24,8 @@ DEFAULT_NOTARKAMMER_DEMO_TARGETS = (
     SmokeTarget("workspace_fail_closed", "https://app.notariat8.de/workspace", "fail_closed_expected"),
 )
 
+DEMO_LATENCY_WARNING_MS = 10_000
+
 SENSITIVE_BODY_MARKERS = (
     "authorization_url",
     "access_token",
@@ -64,6 +66,7 @@ def evaluate_smoke_result(
 
 def build_smoke_report(results: Iterable[dict[str, Any]]) -> dict[str, Any]:
     sanitized_results = []
+    warnings = []
     overall = "pass"
     for result in results:
         evaluation = evaluate_smoke_result(
@@ -74,15 +77,25 @@ def build_smoke_report(results: Iterable[dict[str, Any]]) -> dict[str, Any]:
         )
         if evaluation["status"] != "pass":
             overall = "fail"
+        latency_warning = ""
+        elapsed_ms = int(result.get("elapsed_ms", 0))
+        if (
+            str(result["name"]) == "workspace_fail_closed"
+            and evaluation["classification"] == "fail_closed_expected"
+            and elapsed_ms > DEMO_LATENCY_WARNING_MS
+        ):
+            latency_warning = "slow_fail_closed_response"
+            warnings.append(f"{result['name']}:{latency_warning}")
         sanitized_results.append(
             {
                 "name": str(result["name"]),
                 "url": redact_url_for_report(str(result["url"])),
                 "status": int(result["status"]),
                 "content_type": str(result.get("content_type", ""))[:120],
-                "elapsed_ms": int(result.get("elapsed_ms", 0)),
+                "elapsed_ms": elapsed_ms,
                 "classification": evaluation["classification"],
                 "result": evaluation["status"],
+                "latency_warning": latency_warning,
                 "body_preview": _redacted_body_preview(str(result.get("body_preview", ""))),
             }
         )
@@ -96,6 +109,7 @@ def build_smoke_report(results: Iterable[dict[str, Any]]) -> dict[str, Any]:
             "contains_mandate_data": False,
             "performs_writes": False,
         },
+        "warnings": warnings,
         "results": sanitized_results,
     }
 

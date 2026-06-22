@@ -14,6 +14,7 @@ if str(SRC_ROOT) not in sys.path:
 
 from nac_observability.demo_smoke import (  # noqa: E402
     DEFAULT_NOTARKAMMER_DEMO_TARGETS,
+    DEMO_LATENCY_WARNING_MS,
     SmokeTarget,
     build_smoke_report,
     evaluate_smoke_result,
@@ -66,6 +67,25 @@ class NotarkammerLiveSmokeToolTests(unittest.TestCase):
         self.assertNotIn("state=secret", encoded)
         self.assertNotIn("nonce=secret", encoded)
         self.assertNotIn("idcs.example", encoded)
+
+    def test_workspace_fail_closed_latency_warning_does_not_fail_demo_smoke(self) -> None:
+        report = build_smoke_report(
+            [
+                {
+                    "name": "workspace_fail_closed",
+                    "url": "https://app.notariat8.de/workspace",
+                    "status": 401,
+                    "content_type": "text/html; charset=utf-8",
+                    "body_preview": "Anmeldung erforderlich. Keine Mandatsdaten geladen.",
+                    "elapsed_ms": DEMO_LATENCY_WARNING_MS + 1,
+                }
+            ]
+        )
+
+        self.assertEqual(report["overall"], "pass")
+        self.assertEqual(report["warnings"], ["workspace_fail_closed:slow_fail_closed_response"])
+        self.assertEqual(report["results"][0]["classification"], "fail_closed_expected")
+        self.assertEqual(report["results"][0]["latency_warning"], "slow_fail_closed_response")
 
     def test_url_redaction_keeps_path_and_drops_query(self) -> None:
         self.assertEqual(
