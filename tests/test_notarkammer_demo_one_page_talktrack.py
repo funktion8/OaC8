@@ -42,7 +42,7 @@ class NotarkammerDemoOnePageTalktrackTests(unittest.TestCase):
             "ISV listing",
             "Immobilienkaufvertrag",
             "real estate purchase agreement",
-            "Primaervorgang",
+            "Primärvorgang",
             "primary proceeding",
         ]
         for term in required_terms:
