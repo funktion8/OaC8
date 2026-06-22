@@ -163,7 +163,7 @@ class NotarkammerLiveDemoRunbookTests(unittest.TestCase):
             "NK-EVID-002",
             "NK-EVID-003",
             "NK-EVID-004",
-            "notarkammer_demo_smoke.py --timeout-seconds 15 --summary-only",
+            "notarkammer_demo_smoke.py --timeout-seconds 20 --summary-only",
             "no response body preview",
             "kein Response-Body-Preview",
             "no secrets",

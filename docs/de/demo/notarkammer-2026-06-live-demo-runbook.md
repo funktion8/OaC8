@@ -93,7 +93,7 @@ keine Callback-Werte und keine Provider-Details.
 
 | Evidence-ID | Zeitpunkt | Befehl oder Sicht | Erwartetes Ergebnis | Tatsächliches Ergebnis | Redaktionsstatus | Fallback-Entscheidung |
 | --- | --- | --- | --- | --- | --- | --- |
-| NK-EVID-001 | T-15 | `python scripts/notarkammer_demo_smoke.py --timeout-seconds 15 --summary-only` | Demo-Smoke `pass`; no response body preview; Workspace fail-closed. | einzutragen | redigiert: keine Secrets, keine Mandatsdaten | Bei Fehler: Prozessmodell und Workspace-Grenze zeigen. |
+| NK-EVID-001 | T-15 | `python scripts/notarkammer_demo_smoke.py --timeout-seconds 20 --summary-only` | Demo-Smoke `pass`; no response body preview; Workspace fail-closed. | einzutragen | redigiert: keine Secrets, keine Mandatsdaten | Bei Fehler: Prozessmodell und Workspace-Grenze zeigen. |
 | NK-EVID-002 | T-03 | `https://notariat8.de/prozessmodell.html` | Immobilienkaufvertrag, Dauer, Parallelität und kritischer Pfad sichtbar. | einzutragen | öffentlich; kein Mandatsbezug | Freigegebenen Screenshot nutzen. |
 | NK-EVID-003 | T-03 | `https://app.notariat8.de/healthz` | Kurzer, nicht-sensitiver Status. | einzutragen | redigiert; keine Runtime-Details vorlesen | Health-Tab schließen, Workspace-Grenze zeigen. |
 | NK-EVID-004 | T-03 | `https://app.notariat8.de/workspace` ohne Demo-Sitzung | Fail-closed oder Metadata-only; keine Workspace-Inhalte. | einzutragen | redigiert: keine IDs, keine Claims, keine Aktenwerte | Geschlossene Grenze als Sicherheitsnachweis erklären. |

@@ -91,7 +91,7 @@ callback values and no provider details.
 
 | Evidence-ID | Time | Command or view | Expected result | Actual result | Redaction status | Fallback decision |
 | --- | --- | --- | --- | --- | --- | --- |
-| NK-EVID-001 | T-15 | `python scripts/notarkammer_demo_smoke.py --timeout-seconds 15 --summary-only` | Demo smoke `pass`; no response body preview; workspace fail-closed. | to be filled | redacted: no secrets, no mandate data | On failure: show process model and workspace boundary. |
+| NK-EVID-001 | T-15 | `python scripts/notarkammer_demo_smoke.py --timeout-seconds 20 --summary-only` | Demo smoke `pass`; no response body preview; workspace fail-closed. | to be filled | redacted: no secrets, no mandate data | On failure: show process model and workspace boundary. |
 | NK-EVID-002 | T-03 | `https://notariat8.de/prozessmodell.html` | Immobilienkaufvertrag, duration, parallel work and critical path visible. | to be filled | public; no mandate reference | Use the approved screenshot. |
 | NK-EVID-003 | T-03 | `https://app.notariat8.de/healthz` | Short, non-sensitive status. | to be filled | redacted; do not read runtime details aloud | Close health tab and show workspace boundary. |
 | NK-EVID-004 | T-03 | `https://app.notariat8.de/workspace` without demo session | Fail-closed or metadata-only; no workspace content. | to be filled | redacted: no IDs, no claims, no file values | Explain the closed boundary as security evidence. |
