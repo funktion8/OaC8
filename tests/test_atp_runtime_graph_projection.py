@@ -151,7 +151,7 @@ class AtpRuntimeGraphProjectionTests(unittest.TestCase):
             "kritischer Pfad",
             "parallel",
             "duration bands",
-            "Dauerbaender",
+            "Dauerbänder",
             "No live OCI",
             "Kein Live-OCI",
         ):
