@@ -4,7 +4,7 @@
   "implementation_scope": "testable_adapter_interface",
   "runtime_entities": [
     "tenants",
-    "users",
+    "user_bindings",
     "matters",
     "process_instances",
     "process_events",

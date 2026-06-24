@@ -82,7 +82,7 @@ class InMemoryRuntimeStore:
         return record
 
     def put_user_binding(self, *, user_binding_id: str, tenant_id: str, payload: JsonObject) -> RuntimeRecord:
-        record = _record("user", user_binding_id, tenant_id, payload)
+        record = _record("user_binding", user_binding_id, tenant_id, payload)
         self._user_bindings[user_binding_id] = record
         return record
 
@@ -177,7 +177,7 @@ class InMemoryRuntimeStore:
             },
             "records": {
                 "tenants": _records(self._tenants.values()),
-                "users": _records(self._user_bindings.values()),
+                "user_bindings": _records(self._user_bindings.values()),
                 "matters": _records(self._matters.values()),
                 "process_instances": _records(self._process_instances.values()),
                 "process_events": _records(

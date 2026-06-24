@@ -86,6 +86,7 @@ class AtpRuntimeStoreAdapterTests(unittest.TestCase):
         )
 
         self.assertEqual(tenant.record_type, "tenant")
+        self.assertEqual(user.record_type, "user_binding")
         self.assertEqual(user.tenant_id, "tenant.myjur")
         self.assertEqual(matter.payload["matter_type"], "synthetic_immobilienkauf")
         self.assertEqual(instance.matter_id, "matter.synthetic.001")
@@ -100,6 +101,8 @@ class AtpRuntimeStoreAdapterTests(unittest.TestCase):
         self.assertFalse(serialized["live_oci_enabled"])
         self.assertFalse(serialized["schema_apply_enabled"])
         self.assertEqual(serialized["graph_projection"]["mode"], "deferred_projection_from_events")
+        self.assertIn("user_bindings", serialized["records"])
+        self.assertNotIn("users", serialized["records"])
         self.assertIn("process.synthetic.001", json.dumps(serialized, sort_keys=True))
         for forbidden in ("client_secret", "private_key", "raw_mandate", "mandatsdaten", "owner_id"):
             self.assertNotIn(forbidden, json.dumps(serialized, sort_keys=True).lower())
@@ -117,7 +120,7 @@ class AtpRuntimeStoreAdapterTests(unittest.TestCase):
             contract["runtime_entities"],
             [
                 "tenants",
-                "users",
+                "user_bindings",
                 "matters",
                 "process_instances",
                 "process_events",
