@@ -1,12 +1,12 @@
 # Datenhoheit: Git-Templates und ATP-Laufzeitdaten
 
-Status: entschieden fuer Zielarchitektur, noch ohne produktiven Schema-Apply.
+Status: entschieden für Zielarchitektur, noch ohne produktiven Schema-Apply.
 
 ## Entscheidung
 
 NaC trennt Git als Steuerungsebene von ATP als Laufzeit-Datenebene.
 
-Git bleibt die verbindliche Quelle fuer:
+Git bleibt die verbindliche Quelle für:
 
 - Produktcode, Tests und Release-Artefakte
 - Infrastructure as Code und Betriebsrunbooks
@@ -14,7 +14,7 @@ Git bleibt die verbindliche Quelle fuer:
 - kanonische BPMN-Prozessdefinitionen und Template-Versionen
 - synthetische Demo- und Testdaten
 
-ATP wird die verbindliche Laufzeitdatenbank fuer:
+ATP wird die verbindliche Laufzeitdatenbank für:
 
 - Mandanten, Benutzer- und Rollenbindungen
 - serverseitige Sessions und Widerrufsinformationen
@@ -26,29 +26,29 @@ ATP wird die verbindliche Laufzeitdatenbank fuer:
 
 Produktive Mandatsdaten werden nicht in Git gespeichert. Git darf weiterhin
 synthetische Demo-Daten und fachliche Templates enthalten. Die alte
-Tenant-Git-Repo-Logik ist damit Demo-/Legacy-Pfad, nicht Zielbild fuer den
+Tenant-Git-Repo-Logik ist damit Demo-/Legacy-Pfad, nicht Zielbild für den
 produktiven SaaS-Betrieb.
 
-## Begruendung
+## Begründung
 
-Git ist stark fuer Nachvollziehbarkeit, Review und Versionierung von
-Produktlogik. Git ist schwach fuer laufende SaaS-Daten:
+Git ist stark für Nachvollziehbarkeit, Review und Versionierung von
+Produktlogik. Git ist schwach für laufende SaaS-Daten:
 
 - Klone, Forks und lokale Arbeitskopien vervielfaeltigen Daten.
 - Mandanten-, Rollen- und Feldzugriff lassen sich nicht sauber pro Datensatz
   durchsetzen.
-- Loeschen, Korrigieren, Sperren und Aufbewahren sind mit Git-Historie schwer
+- Löschen, Korrigieren, Sperren und Aufbewahren sind mit Git-Historie schwer
   kontrollierbar.
-- Gleichzeitige Laufzeitschreibvorgaenge fuehren zu Merge- und
+- Gleichzeitige Laufzeitschreibvorgaenge führen zu Merge- und
   Konsistenzproblemen.
-- Abfragen ueber Akten, Fristen, Status, Ereignisse und Mandanten sind in Git
-  keine tragfaehige Datenbankoperation.
+- Abfragen über Akten, Fristen, Status, Ereignisse und Mandanten sind in Git
+  keine tragfähige Datenbankoperation.
 
-ATP ist fuer NaC die bessere Laufzeitgrenze, weil es Transaktionen,
+ATP ist für NaC die bessere Laufzeitgrenze, weil es Transaktionen,
 strukturierte Abfragen, JSON-Flexibilitaet, Zugriffskontrolle, Backups und
-serverseitige Persistenz verbindet. JSON-Spalten koennen flexible
-Fachpayloads aufnehmen; relationale Schluessel bleiben die fuehrende
-Integritaetsgrenze. Graph-Funktionen koennen spaeter fuer Beziehungen,
+serverseitige Persistenz verbindet. JSON-Spalten können flexible
+Fachpayloads aufnehmen; relationale Schluessel bleiben die führende
+Integritaetsgrenze. Graph-Funktionen können später für Beziehungen,
 Abhaengigkeiten, Parallelitaet und kritische Pfade genutzt werden, ohne die
 Basisdatenhaltung in Git zu verschieben.
 
@@ -63,12 +63,12 @@ Basisdatenhaltung in Git zu verschieben.
 | Mandanten und Benutzerbindungen | ATP / IdP | ATP speichert NaC-Bindung, IdP authentifiziert |
 | Sessions | ATP | nur gehashte/abgeleitete Sessiondaten, keine Tokens oder Claims |
 | Dokument-Metadaten | ATP | Dateiname, Typ, Status, Nachweisreferenz ohne Rohinhalt |
-| Dokument-Binaerdaten | spaeter Object Storage | verschluesselt, mit Retention und Audit |
+| Dokument-Binaerdaten | später Object Storage | verschluesselt, mit Retention und Audit |
 | Demo-Daten | Git erlaubt | nur synthetisch und ausdruecklich markiert |
 
 ## Erstes Schema-Konzept
 
-Das Zielmodell wird inkrementell aufgebaut. Fuer den naechsten Ausbau reichen
+Das Zielmodell wird inkrementell aufgebaut. Für den naechsten Ausbau reichen
 folgende logische Tabellen oder gleichwertige Store-Grenzen:
 
 - `tenants`: Mandant, Status, Domainbindung, aktivierte Prozessversionen.
@@ -79,7 +79,7 @@ folgende logische Tabellen oder gleichwertige Store-Grenzen:
 - `process_events`: append-only Ereignisse, Gate-Ergebnisse, Fristen, XNP/SNP-Statusklassen.
 - `document_metadata`: optionale Dokumentreferenzen, Klassifikation und Speicherverweis.
 
-Die Tabellen duerfen keine Tokens, IdP-Claims, PINs, Kartenrohdaten,
+Die Tabellen dürfen keine Tokens, IdP-Claims, PINs, Kartenrohdaten,
 Zugangsdaten oder unredigierte Mandatsinhalte speichern, solange die jeweilige
 Datenschutz-, Aufbewahrungs- und Notariatsfreigabe nicht explizit definiert ist.
 
@@ -91,7 +91,7 @@ Ein Prozess hat zwei getrennte Lebenszyklen:
 2. **Instanz-Lebenszyklus in ATP:** konkreter Vorgang, Status, Ereignisse,
    externe Ruecklaeufe, Fristen, Audit-Metadaten.
 
-Ein Merge in Git aendert keine laufende Akte automatisch. Ein Mandant muss eine
+Ein Merge in Git ändert keine laufende Akte automatisch. Ein Mandant muss eine
 Template-Version aktivieren; Prozessinstanzen referenzieren danach die konkrete
 Version. Dadurch bleiben Demo, Governance und produktive Laufzeitdaten getrennt.
 
@@ -105,9 +105,9 @@ Version. Dadurch bleiben Demo, Governance und produktive Laufzeitdaten getrennt.
 
 ## Naechste Tracks
 
-1. ATP-Schema-Plan fuer `tenants`, `matters`, `process_templates`,
+1. ATP-Schema-Plan für `tenants`, `matters`, `process_templates`,
    `process_instances` und `process_events`.
-2. Migrationspfad fuer synthetische Demo-Git-Daten in einen ATP-basierten
+2. Migrationspfad für synthetische Demo-Git-Daten in einen ATP-basierten
    Demo-Read-Model-Store.
 3. `/workspace`-Status aus ATP-Metadaten lesen, ohne Rohmandatsdaten zu laden.
 4. Immobilienkaufvertrag als erste Prozessinstanz mit XNP/SNP-, Grundbuch-,
