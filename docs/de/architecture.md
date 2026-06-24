@@ -49,6 +49,18 @@ flowchart TD
     MainState --> Close["Tag oder Release für Abschluss"]
 ```
 
+## Datenhoheit
+
+Git ist die Steuerungs- und Template-Ebene fuer Code, IaC, Governance,
+BPMN-Prozessdefinitionen und synthetische Demo-Daten. ATP ist die
+Laufzeit-Datenebene fuer Mandanten, Benutzerbindungen, Sessions, Vorgangs- und
+Akten-Metadaten, Prozessinstanzen, Prozessereignisse und Audit-Metadaten.
+
+Produktive Mandatsdaten werden nicht in Git gespeichert. Konkrete
+Prozessinstanzen referenzieren freigegebene Git-Template-Versionen, laufen aber
+in ATP. Die Detailentscheidung steht in
+[data-sovereignty-git-vs-atp.md](architecture/data-sovereignty-git-vs-atp.md).
+
 ## Fachlicher Zustandsautomat
 
 ```mermaid
