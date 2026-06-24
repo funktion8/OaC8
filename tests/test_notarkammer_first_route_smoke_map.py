@@ -38,8 +38,10 @@ class NotarkammerFirstRouteSmokeMapTests(unittest.TestCase):
         required_terms = [
             "https://app.notariat8.de/login",
             "https://app.notariat8.de/workspace",
+            "https://app.notariat8.de/workspace/immobilienkaufvertrag",
             "login_status",
             "workspace_fail_closed",
+            "protected_first_matter_status",
             "DEMO-MATTER-IMMOBILIENKAUF-01",
             "tests/fixtures/demo/notarkammer-first-immobilienkaufvertrag.metadata.json",
             "bpmn/immobilienkaufvertrag.bpmn",
@@ -52,6 +54,7 @@ class NotarkammerFirstRouteSmokeMapTests(unittest.TestCase):
             "no secrets",
             "no productive XNP action",
             "no OCI writes",
+            "approved session and binding",
         ]
         for term in required_terms:
             self.assertIn(term, combined)
