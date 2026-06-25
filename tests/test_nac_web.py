@@ -2725,35 +2725,25 @@ class NaCLocalWebTests(unittest.TestCase):
         self.assertNotIn("Oracle", html)
         self.assertNotIn("OCI", html)
 
-    def test_first_matter_status_display_is_seeded_from_runtime_fixture(self) -> None:
+    def test_first_matter_status_display_uses_packaged_runtime_source(self) -> None:
         captured: dict[str, object] = {}
 
-        def seed_runtime_fixture(*, store: object, fixture: dict[str, object]) -> dict[str, str]:
-            captured["store_type"] = type(store).__name__
-            captured["data_model_slice"] = fixture.get("data_model_slice")
-            captured["runtime_event_profile"] = isinstance(fixture.get("runtime_event_profile"), list)
-            return {"process_instance_id": "PROCESS-FROM-SEED"}
-
-        def build_runtime_display(*, store: object, process_instance_id: str) -> dict[str, object]:
-            captured["display_store_type"] = type(store).__name__
-            captured["process_instance_id"] = process_instance_id
+        def build_runtime_display(*, source: object) -> dict[str, object]:
+            captured["source_type"] = type(source).__name__
             return {
                 "schema_version": "nac.runtime-status-presenter/v0.1",
                 "title": "Immobilienkaufvertrag Status",
             }
 
-        with (
-            patch.object(nac_server, "seed_notarkammer_first_matter", side_effect=seed_runtime_fixture),
-            patch.object(nac_server, "build_first_matter_status_display", side_effect=build_runtime_display),
+        with patch.object(
+            nac_server,
+            "build_first_matter_status_display_from_metadata_source",
+            side_effect=build_runtime_display,
         ):
-            display = nac_server._first_matter_status_display(REPO_ROOT)
+            display = nac_server._first_matter_status_display()
 
         self.assertEqual(display["title"], "Immobilienkaufvertrag Status")
-        self.assertEqual(captured["store_type"], "InMemoryRuntimeStore")
-        self.assertEqual(captured["display_store_type"], "InMemoryRuntimeStore")
-        self.assertEqual(captured["data_model_slice"], "runtime_graph_metadata_v0")
-        self.assertEqual(captured["runtime_event_profile"], True)
-        self.assertEqual(captured["process_instance_id"], "PROCESS-FROM-SEED")
+        self.assertEqual(captured["source_type"], "PackagedRuntimeMetadataSource")
 
     def test_workspace_redacts_gate_reason_context_values(self) -> None:
         from nac_identity.oidc_session import evaluate_oidc_session_boundary

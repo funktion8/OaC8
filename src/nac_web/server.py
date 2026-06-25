@@ -42,9 +42,10 @@ from nac_identity.role_case_gate import (
     normalize_workspace_role_gate_context,
     normalize_workspace_tenant_binding_context,
 )
-from nac_runtime.demo_seed import seed_notarkammer_first_matter
-from nac_runtime.status_display import build_first_matter_status_display
-from nac_runtime.store import InMemoryRuntimeStore
+from nac_runtime.status_source import (
+    PackagedRuntimeMetadataSource,
+    build_first_matter_status_display_from_metadata_source,
+)
 from nac_gnotkg.views import build_cost_review_view
 from nac_web.bpmn import (
     BpmnSaveConflict,
@@ -1099,7 +1100,7 @@ def build_protected_first_matter_status_page(
         """
         return HTTPStatus.FORBIDDEN, _layout("notariat8 Vorgangsstatus geschlossen", body)
 
-    display = _first_matter_status_display(repo_root)
+    display = _first_matter_status_display()
     status_items_html = _link_list_items(display["status_items"])
     next_steps_html = _link_list_items(display["next_steps"])
 
@@ -1156,20 +1157,9 @@ def build_protected_first_matter_status_page(
     return HTTPStatus.OK, _layout("notariat8 Immobilienkaufvertrag Status", body)
 
 
-def _first_matter_status_display(repo_root: Path) -> dict[str, Any]:
-    fixture_path = (
-        repo_root
-        / "tests"
-        / "fixtures"
-        / "demo"
-        / "notarkammer-first-immobilienkaufvertrag.metadata.json"
-    )
-    fixture = json.loads(fixture_path.read_text(encoding="utf-8"))
-    store = InMemoryRuntimeStore()
-    seed = seed_notarkammer_first_matter(store=store, fixture=fixture)
-    return build_first_matter_status_display(
-        store=store,
-        process_instance_id=seed["process_instance_id"],
+def _first_matter_status_display() -> dict[str, Any]:
+    return build_first_matter_status_display_from_metadata_source(
+        source=PackagedRuntimeMetadataSource(),
     )
 
 

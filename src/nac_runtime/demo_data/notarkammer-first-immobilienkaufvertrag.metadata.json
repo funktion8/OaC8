@@ -1,0 +1,218 @@
+{
+  "schema_version": "nac.demo-matter-metadata/v0.1",
+  "entry_contract": "notarkammer-first-matter-demo/v0.1",
+  "demo_context": "notarkammer-2026-06",
+  "scope": "metadata_only",
+  "tenant_demo_id": "DEMO-TENANT-NOTARIAT-01",
+  "matter_demo_id": "DEMO-MATTER-IMMOBILIENKAUF-01",
+  "usecase_slug": "immobilienkaufvertrag",
+  "primary_matter_type": "immobilienkaufvertrag",
+  "target_systems": [
+    "XNP",
+    "SNP"
+  ],
+  "bpmn_model": "bpmn/immobilienkaufvertrag.bpmn",
+  "kg_ref": "usecases/immobilienkaufvertrag/knowledge-graph.md",
+  "mandate_data_present": false,
+  "real_register_data_present": false,
+  "oci_apply_permitted": false,
+  "secret_material_present": false,
+  "raw_mandate_content_loaded": false,
+  "productive_xnp_action": false,
+  "contains_credentials": false,
+  "party_roles": [
+    "DEMO-ROLLE-VERKAEUFER",
+    "DEMO-ROLLE-KAEUFER",
+    "DEMO-ROLLE-FINANZIERUNG"
+  ],
+  "document_classes": [
+    "DEMO-DOKUMENT-ENTWURF",
+    "DEMO-DOKUMENT-VOLLZUGSNACHWEIS",
+    "DEMO-DOKUMENT-KOSTENPRUEFUNG"
+  ],
+  "gates": [
+    "domain_verified",
+    "tenant_admin_review_required",
+    "gnotkg_review_required",
+    "xnp_local_readiness_only",
+    "xnp_snp_target_metadata_only",
+    "human_review_required",
+    "no_customer_mail_dispatch"
+  ],
+  "external_boundaries": [
+    "grundbuch_external_boundary",
+    "register_external_boundary",
+    "tax_office_external_boundary",
+    "municipality_external_boundary"
+  ],
+  "parallel_groups": [
+    "post_beurkundung_parallel",
+    "external_response_tracking_parallel"
+  ],
+  "critical_path": [
+    "kaufpreisfaelligkeit",
+    "rangpruefung",
+    "vollzugsvoraussetzungen"
+  ],
+  "duration_bands": {
+    "internal_review": "hours_to_days",
+    "external_responses": "weeks",
+    "complex_completion": "weeks_to_months"
+  },
+  "cost_review": {
+    "module": "nac_gnotkg",
+    "status": "technical_review_only",
+    "final_decision": "notarial_review_required"
+  },
+  "demo_boundaries": [
+    "no_mandate_data",
+    "no_real_personal_data",
+    "no_real_property_data",
+    "no_customer_mail_dispatch",
+    "no_production_filing",
+    "no_oci_apply",
+    "no_secret_material"
+  ],
+  "data_model_slice": "runtime_graph_metadata_v0",
+  "runtime_storage_contract": "nac.atp-runtime-storage/v0.1",
+  "graph_projection_contract": "nac.atp-runtime-graph-projection/v0.1",
+  "runtime_event_profile": [
+    {
+      "gate": "domain_verified",
+      "event_type": "runtime_gate_ready",
+      "step": "tenant_domain_boundary_ready",
+      "duration_band": "hours_to_days"
+    },
+    {
+      "gate": "tenant_admin_review_required",
+      "event_type": "runtime_review_gate_ready",
+      "step": "tenant_admin_review_required",
+      "duration_band": "hours_to_days",
+      "depends_on": [
+        "domain_verified"
+      ]
+    },
+    {
+      "gate": "gnotkg_review_required",
+      "event_type": "runtime_review_gate_ready",
+      "step": "gnotkg_cost_review_required",
+      "duration_band": "hours_to_days",
+      "depends_on": [
+        "tenant_admin_review_required"
+      ]
+    },
+    {
+      "gate": "xnp_local_readiness_only",
+      "event_type": "runtime_integration_gate_ready",
+      "step": "xnp_local_readiness_only",
+      "duration_band": "hours_to_days",
+      "parallel_group": "post_beurkundung_parallel",
+      "depends_on": [
+        "gnotkg_review_required"
+      ]
+    },
+    {
+      "gate": "xnp_snp_target_metadata_only",
+      "event_type": "runtime_integration_gate_ready",
+      "step": "xnp_snp_target_metadata_only",
+      "external_system": "XNP/SNP",
+      "duration_band": "weeks",
+      "parallel_group": "post_beurkundung_parallel",
+      "depends_on": [
+        "xnp_local_readiness_only"
+      ]
+    },
+    {
+      "gate": "human_review_required",
+      "event_type": "runtime_review_gate_ready",
+      "step": "human_review_required",
+      "duration_band": "hours_to_days",
+      "depends_on": [
+        "xnp_snp_target_metadata_only"
+      ]
+    },
+    {
+      "gate": "no_customer_mail_dispatch",
+      "event_type": "runtime_safety_gate_closed",
+      "step": "customer_mail_dispatch_blocked",
+      "duration_band": "hours_to_days",
+      "depends_on": [
+        "human_review_required"
+      ]
+    },
+    {
+      "gate": "grundbuch_external_boundary",
+      "event_type": "runtime_external_boundary_visible",
+      "step": "grundbuch_external_boundary",
+      "external_system": "Grundbuch",
+      "duration_band": "weeks",
+      "parallel_group": "external_response_tracking_parallel",
+      "depends_on": [
+        "xnp_snp_target_metadata_only"
+      ]
+    },
+    {
+      "gate": "register_external_boundary",
+      "event_type": "runtime_external_boundary_visible",
+      "step": "register_external_boundary",
+      "external_system": "Register",
+      "duration_band": "weeks",
+      "parallel_group": "external_response_tracking_parallel",
+      "depends_on": [
+        "xnp_snp_target_metadata_only"
+      ]
+    },
+    {
+      "gate": "tax_office_external_boundary",
+      "event_type": "runtime_external_boundary_visible",
+      "step": "tax_office_external_boundary",
+      "external_system": "TaxOffice",
+      "duration_band": "weeks",
+      "parallel_group": "external_response_tracking_parallel",
+      "depends_on": [
+        "xnp_snp_target_metadata_only"
+      ]
+    },
+    {
+      "gate": "municipality_external_boundary",
+      "event_type": "runtime_external_boundary_visible",
+      "step": "municipality_external_boundary",
+      "external_system": "Municipality",
+      "duration_band": "weeks",
+      "parallel_group": "external_response_tracking_parallel",
+      "depends_on": [
+        "xnp_snp_target_metadata_only"
+      ]
+    },
+    {
+      "gate": "kaufpreisfaelligkeit",
+      "event_type": "runtime_critical_path_step",
+      "step": "kaufpreisfaelligkeit",
+      "duration_band": "weeks",
+      "critical_path": true,
+      "depends_on": [
+        "grundbuch_external_boundary"
+      ]
+    },
+    {
+      "gate": "rangpruefung",
+      "event_type": "runtime_critical_path_step",
+      "step": "rangpruefung",
+      "duration_band": "weeks",
+      "critical_path": true,
+      "depends_on": [
+        "kaufpreisfaelligkeit"
+      ]
+    },
+    {
+      "gate": "vollzugsvoraussetzungen",
+      "event_type": "runtime_critical_path_step",
+      "step": "vollzugsvoraussetzungen",
+      "duration_band": "weeks_to_months",
+      "critical_path": true,
+      "depends_on": [
+        "rangpruefung"
+      ]
+    }
+  ]
+}
