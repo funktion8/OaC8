@@ -54,10 +54,39 @@ class NotarkammerFirstRouteSmokeMapTests(unittest.TestCase):
             "no secrets",
             "no productive XNP action",
             "no OCI writes",
-            "approved session and binding",
+            "approved session, role and binding",
+            "bestätigter Sitzung, Rolle und Bindung",
         ]
         for term in required_terms:
             self.assertIn(term, combined)
+
+
+    def test_smoke_map_documents_protected_first_matter_route(self) -> None:
+        docs = read_smoke_map_docs()
+        for language, content in docs.items():
+            self.assertIn(
+                "https://app.notariat8.de/workspace/immobilienkaufvertrag",
+                content,
+                language,
+            )
+            self.assertIn("protected_first_matter_status", content, language)
+            if language == "de":
+                self.assertRegex(content, r"Sitzung.*Rolle.*Bindung", language)
+                self.assertRegex(content, r"(fail-closed|geschlossen)", language)
+            else:
+                self.assertRegex(
+                    content,
+                    re.compile(r"session.*role.*binding", re.IGNORECASE),
+                    language,
+                )
+                self.assertIn("fail-closed", content, language)
+            for boundary in (
+                "no mandate data",
+                "no secrets",
+                "no productive XNP action",
+                "no OCI writes",
+            ):
+                self.assertIn(boundary, content, language)
 
     def test_smoke_map_has_four_step_live_validation_route(self) -> None:
         docs = read_smoke_map_docs()
