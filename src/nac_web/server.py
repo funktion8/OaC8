@@ -42,7 +42,9 @@ from nac_identity.role_case_gate import (
     normalize_workspace_role_gate_context,
     normalize_workspace_tenant_binding_context,
 )
-from nac_runtime.status_presenter import present_first_matter_status
+from nac_runtime.demo_seed import seed_notarkammer_first_matter
+from nac_runtime.status_display import build_first_matter_status_display
+from nac_runtime.store import InMemoryRuntimeStore
 from nac_gnotkg.views import build_cost_review_view
 from nac_web.bpmn import (
     BpmnSaveConflict,
@@ -157,6 +159,7 @@ class NaCLocalWebApp:
             if route == "/workspace/immobilienkaufvertrag":
                 status, page = build_protected_first_matter_status_page(
                     headers or {},
+                    repo_root=self.repo_root,
                     secret_text_provider=self.secret_text_provider,
                     session_store=self.session_store,
                 )
@@ -1047,6 +1050,7 @@ def build_protected_workspace_start_page(
 def build_protected_first_matter_status_page(
     request_headers: dict[str, str],
     *,
+    repo_root: Path,
     secret_text_provider: Callable[[str], str] | None = None,
     session_store: RuntimeSessionStoreAdapter | None = None,
 ) -> tuple[HTTPStatus, str]:
@@ -1095,7 +1099,7 @@ def build_protected_first_matter_status_page(
         """
         return HTTPStatus.FORBIDDEN, _layout("notariat8 Vorgangsstatus geschlossen", body)
 
-    display = _first_matter_status_display()
+    display = _first_matter_status_display(repo_root)
     status_items_html = _link_list_items(display["status_items"])
     next_steps_html = _link_list_items(display["next_steps"])
 
@@ -1152,22 +1156,20 @@ def build_protected_first_matter_status_page(
     return HTTPStatus.OK, _layout("notariat8 Immobilienkaufvertrag Status", body)
 
 
-def _first_matter_status_display() -> dict[str, Any]:
-    return present_first_matter_status(
-        {
-            "schema_version": "nac.runtime-status-read-model/v0.1",
-            "status": "portal_start_metadata_ready",
-            "matter_label": "Immobilienkaufvertrag",
-            "bpmn_model_present": True,
-            "xnp_snp_target_path_prepared": True,
-            "execution_path_visible": True,
-            "critical_path_summary": "Externer Rücklauf",
-            "duration_band_summary": "Wochen bis Monate",
-            "parallel_work_visible": True,
-            "mandate_data_loaded": False,
-            "productive_xnp_action": False,
-            "full_workspace_open": False,
-        }
+def _first_matter_status_display(repo_root: Path) -> dict[str, Any]:
+    fixture_path = (
+        repo_root
+        / "tests"
+        / "fixtures"
+        / "demo"
+        / "notarkammer-first-immobilienkaufvertrag.metadata.json"
+    )
+    fixture = json.loads(fixture_path.read_text(encoding="utf-8"))
+    store = InMemoryRuntimeStore()
+    seed = seed_notarkammer_first_matter(store=store, fixture=fixture)
+    return build_first_matter_status_display(
+        store=store,
+        process_instance_id=seed["process_instance_id"],
     )
 
 
