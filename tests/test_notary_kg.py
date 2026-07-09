@@ -60,6 +60,11 @@ from notary_kg.process_ontology_schema_apply_execution_contract import (
     build_process_ontology_sharepoint_schema_apply_execution_contract,
     validate_process_ontology_sharepoint_schema_apply_execution_contract,
 )
+from notary_kg.process_ontology_schema_apply_graph_dispatcher import (
+    run_process_ontology_sharepoint_schema_apply_graph_dispatcher,
+    validate_process_ontology_sharepoint_schema_apply_graph_dispatcher,
+    write_process_ontology_sharepoint_schema_apply_graph_dispatcher_artifact,
+)
 from notary_kg.process_ontology_schema_apply_owner_gated_live_plan import (
     validate_process_ontology_sharepoint_schema_apply_owner_gated_live_plan,
     write_process_ontology_sharepoint_schema_apply_owner_gated_live_plan,
@@ -93,6 +98,59 @@ from notary_kg.process_ontology_schema_gap import (
 )
 from notary_kg.workflow_contract import build_workflow_contract_draft
 from nac_gnotkg.views import build_cost_review_view
+
+
+class FakeProcessOntologySchemaApplyGraphClient:
+    def __init__(self) -> None:
+        self.posts: list[tuple[str, dict]] = []
+        self.patches: list[tuple[str, dict]] = []
+        self.get_counts: dict[str, int] = {}
+        self.choice_columns = {"Vorgangstyp", "CurrentPhase", "ProcessPhase", "RoleTemplate"}
+
+    def get(self, path: str) -> dict:
+        self.get_counts[path] = self.get_counts.get(path, 0) + 1
+        if "$filter=displayName" in path:
+            return self._filter_response(path, "displayName", created=len(self.posts) > 0)
+        if "$filter=name" in path:
+            name = self._quoted_filter_value(path)
+            if name in self.choice_columns:
+                return {"value": [{"id": f"fake-choice-column-{name}", "name": name, "choice": {"choices": []}}]}
+            return self._filter_response(path, "name", created=len(self.posts) > 0)
+        if "/columns/fake-choice-column" in path or "/columns/fake-choice-" in path:
+            if self.patches:
+                choices = self.patches[-1][1].get("choice", {}).get("choices", [])
+                return {"id": "fake-choice-column", "choice": {"choices": choices}}
+            return {"id": "fake-choice-column", "choice": {"choices": []}}
+        return {"value": [{"id": "fake-existing"}]}
+
+    def post(self, path: str, payload: dict) -> dict:
+        self.posts.append((path, payload))
+        return {"id": f"fake-post-{len(self.posts)}"}
+
+    def patch(self, path: str, payload: dict) -> dict:
+        self.patches.append((path, payload))
+        return {"id": f"fake-patch-{len(self.patches)}"}
+
+    def _filter_response(self, path: str, key: str, *, created: bool) -> dict:
+        if self.get_counts[path] == 1 and not created:
+            return {"value": []}
+        return {"value": [{"id": f"fake-{key}-id", key: self._quoted_filter_value(path)}]}
+
+    def _quoted_filter_value(self, path: str) -> str:
+        marker = "%27"
+        if marker in path:
+            parts = path.split(marker)
+            if len(parts) >= 3:
+                from urllib.parse import unquote
+
+                return unquote(parts[1])
+        if "'" in path:
+            parts = path.split("'")
+            if len(parts) >= 3:
+                from urllib.parse import unquote
+
+                return unquote(parts[1])
+        return "fake"
 
 
 class NotaryKnowledgeGraphTests(unittest.TestCase):
@@ -1517,6 +1575,92 @@ class NotaryKnowledgeGraphTests(unittest.TestCase):
         self.assertEqual(payload["schema_version"], "nac.process-ontology-sharepoint-schema-apply-live-runner/v0.1")
         self.assertEqual(payload["status"], "READY_FOR_GRAPH_REST_DISPATCH")
         self.assertEqual(payload["summary"]["runner_step_count"], 68)
+
+    def test_process_ontology_schema_apply_graph_dispatcher_runs_with_fake_client(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_root = Path(temp_dir)
+            artifact_root = temp_root / "artifacts"
+            artifact_json = artifact_root / "process-ontology-schema-apply-runner-dry-run.redacted.json"
+            artifact_md = artifact_root / "process-ontology-schema-apply-runner-dry-run.redacted.md"
+            gate_json = temp_root / "process-ontology-schema-apply-live-readiness-gate.redacted.json"
+            gate_md = temp_root / "process-ontology-schema-apply-live-readiness-gate.redacted.md"
+            write_process_ontology_sharepoint_schema_apply_runner_dry_run_artifact(
+                REPO_ROOT,
+                artifact_json,
+                artifact_md,
+            )
+            write_process_ontology_sharepoint_schema_apply_live_readiness_gate(
+                REPO_ROOT,
+                artifact_root,
+                gate_json,
+                gate_md,
+            )
+            payload = run_process_ontology_sharepoint_schema_apply_graph_dispatcher(
+                FakeProcessOntologySchemaApplyGraphClient(),
+                REPO_ROOT,
+                live_readiness_gate=gate_json,
+                correlation_id="nac-schema-apply-dispatcher-test",
+                owner_approved=True,
+                execute_live_schema_apply=True,
+                write_redacted_evidence=True,
+            )
+            validation = validate_process_ontology_sharepoint_schema_apply_graph_dispatcher(payload)
+            serialized = json.dumps(payload, ensure_ascii=False, sort_keys=True).lower()
+
+        self.assertEqual(payload["schema_version"], "nac.process-ontology-sharepoint-schema-apply-graph-dispatcher/v0.1")
+        self.assertEqual(payload["status"], "PASSED")
+        self.assertEqual(validation.status, "PASSED")
+        self.assertEqual(validation.errors, ())
+        self.assertEqual(payload["summary"]["dispatched_step_count"], 68)
+        self.assertGreaterEqual(payload["summary"]["mutation_request_count"], 1)
+        self.assertTrue(payload["summary"]["executed_graph_requests"])
+        self.assertTrue(payload["summary"]["executed_graph_writes"])
+        self.assertTrue(payload["guardrails"]["graph_rest_only"])
+        self.assertFalse(payload["privacy"]["storesRawGraphPath"])
+        self.assertFalse(payload["privacy"]["storesRawGraphResponse"])
+        self.assertNotIn("funktion8.sharepoint.com", serialized)
+        self.assertNotIn('"authorization"', serialized)
+
+    def test_process_ontology_schema_apply_graph_dispatcher_writes_redacted_artifact(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_root = Path(temp_dir)
+            artifact_root = temp_root / "artifacts"
+            artifact_json = artifact_root / "process-ontology-schema-apply-runner-dry-run.redacted.json"
+            artifact_md = artifact_root / "process-ontology-schema-apply-runner-dry-run.redacted.md"
+            gate_json = temp_root / "process-ontology-schema-apply-live-readiness-gate.redacted.json"
+            gate_md = temp_root / "process-ontology-schema-apply-live-readiness-gate.redacted.md"
+            dispatch_json = temp_root / "process-ontology-schema-apply-graph-dispatcher.redacted.json"
+            dispatch_md = temp_root / "process-ontology-schema-apply-graph-dispatcher.redacted.md"
+            write_process_ontology_sharepoint_schema_apply_runner_dry_run_artifact(
+                REPO_ROOT,
+                artifact_json,
+                artifact_md,
+            )
+            write_process_ontology_sharepoint_schema_apply_live_readiness_gate(
+                REPO_ROOT,
+                artifact_root,
+                gate_json,
+                gate_md,
+            )
+            payload = write_process_ontology_sharepoint_schema_apply_graph_dispatcher_artifact(
+                FakeProcessOntologySchemaApplyGraphClient(),
+                REPO_ROOT,
+                dispatch_json,
+                dispatch_md,
+                live_readiness_gate=gate_json,
+                correlation_id="nac-schema-apply-dispatcher-artifact-test",
+                owner_approved=True,
+                execute_live_schema_apply=True,
+                write_redacted_evidence=True,
+                max_steps=2,
+            )
+            dispatch_json_exists = dispatch_json.is_file()
+            dispatch_md_exists = dispatch_md.is_file()
+
+        self.assertEqual(payload["status"], "PASSED")
+        self.assertEqual(payload["summary"]["dispatched_step_count"], 2)
+        self.assertTrue(dispatch_json_exists)
+        self.assertTrue(dispatch_md_exists)
 
     def test_deep_process_candidate_routing_prioritizes_high_and_explicit_cases(self) -> None:
         payload = build_deep_process_candidate_routing(REPO_ROOT)

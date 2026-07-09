@@ -414,6 +414,21 @@ def build_parser() -> argparse.ArgumentParser:
         "--no-ensure-default-artifacts",
         action="store_true",
     )
+    kg_process_ontology_schema_apply_live_dispatch = kg_sub.add_parser(
+        "process-ontology-schema-apply-live-dispatch",
+        help="Fuehrt den owner-gated Graph-REST-Dispatcher fuer den SharePoint-Schema-Apply aus.",
+    )
+    kg_process_ontology_schema_apply_live_dispatch.add_argument(
+        "--format", choices=["text", "json"], default=argparse.SUPPRESS
+    )
+    kg_process_ontology_schema_apply_live_dispatch.add_argument("--live-readiness-gate", type=Path, required=True)
+    kg_process_ontology_schema_apply_live_dispatch.add_argument("--correlation-id", required=True)
+    kg_process_ontology_schema_apply_live_dispatch.add_argument("--owner-approved", action="store_true")
+    kg_process_ontology_schema_apply_live_dispatch.add_argument("--execute-live-schema-apply", action="store_true")
+    kg_process_ontology_schema_apply_live_dispatch.add_argument("--write-redacted-evidence", action="store_true")
+    kg_process_ontology_schema_apply_live_dispatch.add_argument("--max-steps", type=int, default=None)
+    kg_process_ontology_schema_apply_live_dispatch.add_argument("--output", type=Path, default=None)
+    kg_process_ontology_schema_apply_live_dispatch.add_argument("--markdown-output", type=Path, default=None)
     kg_deep_process_candidates = kg_sub.add_parser(
         "deep-process-candidates",
         help="Routet Geschäftsvorfälle in Kandidaten für tiefe BPMN-/Ontologie-Modellierung.",
@@ -1556,6 +1571,8 @@ def command_kg(args: argparse.Namespace) -> int:
         argv.append("--execute-live-schema-apply")
     if getattr(args, "write_redacted_evidence", False):
         argv.append("--write-redacted-evidence")
+    if getattr(args, "max_steps", None) is not None:
+        argv.extend(["--max-steps", str(args.max_steps)])
     return notary_kg_main(argv)
 
 
