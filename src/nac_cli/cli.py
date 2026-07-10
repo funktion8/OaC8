@@ -362,6 +362,11 @@ def build_parser() -> argparse.ArgumentParser:
     kg_process_ontology_schema_apply_live_readiness_gate.add_argument(
         "--format", choices=["text", "json"], default=argparse.SUPPRESS
     )
+    kg_process_ontology_schema_apply_live_readiness_gate.add_argument(
+        "--workspace-id",
+        choices=["notary_team_01"],
+        required=True,
+    )
     kg_process_ontology_schema_apply_live_readiness_gate.add_argument("--artifact-root", type=Path, default=None)
     kg_process_ontology_schema_apply_live_readiness_gate.add_argument("--output", type=Path, default=None)
     kg_process_ontology_schema_apply_live_readiness_gate.add_argument("--markdown-output", type=Path, default=None)
@@ -402,9 +407,14 @@ def build_parser() -> argparse.ArgumentParser:
         help="Schreibt den owner-gated Live-Runner-Envelope fuer den Graph-REST-Schema-Apply.",
     )
     kg_process_ontology_schema_apply_live.add_argument("--format", choices=["text", "json"], default=argparse.SUPPRESS)
+    kg_process_ontology_schema_apply_live.add_argument(
+        "--workspace-id", choices=["notary_team_01"], required=True
+    )
     kg_process_ontology_schema_apply_live.add_argument("--artifact-root", type=Path, default=None)
     kg_process_ontology_schema_apply_live.add_argument("--live-readiness-gate", type=Path, default=None)
     kg_process_ontology_schema_apply_live.add_argument("--correlation-id", default=None)
+    kg_process_ontology_schema_apply_live.add_argument("--owner-approval-reference", required=True)
+    kg_process_ontology_schema_apply_live.add_argument("--reason", required=True)
     kg_process_ontology_schema_apply_live.add_argument("--owner-approved", action="store_true")
     kg_process_ontology_schema_apply_live.add_argument("--execute-live-schema-apply", action="store_true")
     kg_process_ontology_schema_apply_live.add_argument("--write-redacted-evidence", action="store_true")
@@ -421,8 +431,13 @@ def build_parser() -> argparse.ArgumentParser:
     kg_process_ontology_schema_apply_live_dispatch.add_argument(
         "--format", choices=["text", "json"], default=argparse.SUPPRESS
     )
+    kg_process_ontology_schema_apply_live_dispatch.add_argument(
+        "--workspace-id", choices=["notary_team_01"], required=True
+    )
     kg_process_ontology_schema_apply_live_dispatch.add_argument("--live-readiness-gate", type=Path, required=True)
     kg_process_ontology_schema_apply_live_dispatch.add_argument("--correlation-id", required=True)
+    kg_process_ontology_schema_apply_live_dispatch.add_argument("--owner-approval-reference", required=True)
+    kg_process_ontology_schema_apply_live_dispatch.add_argument("--reason", required=True)
     kg_process_ontology_schema_apply_live_dispatch.add_argument("--owner-approved", action="store_true")
     kg_process_ontology_schema_apply_live_dispatch.add_argument("--execute-live-schema-apply", action="store_true")
     kg_process_ontology_schema_apply_live_dispatch.add_argument("--write-redacted-evidence", action="store_true")
@@ -1563,8 +1578,19 @@ def command_kg(args: argparse.Namespace) -> int:
         argv.append("--no-ensure-default-artifacts")
     if getattr(args, "live_readiness_gate", None) is not None:
         argv.extend(["--live-readiness-gate", str(args.live_readiness_gate)])
+    workspace_ids = getattr(args, "workspace_id", None)
+    if workspace_ids is not None:
+        if isinstance(workspace_ids, list):
+            for workspace_id in workspace_ids:
+                argv.extend(["--workspace-id", str(workspace_id)])
+        else:
+            argv.extend(["--workspace-id", str(workspace_ids)])
     if getattr(args, "correlation_id", None):
         argv.extend(["--correlation-id", str(args.correlation_id)])
+    if getattr(args, "owner_approval_reference", None):
+        argv.extend(["--owner-approval-reference", str(args.owner_approval_reference)])
+    if getattr(args, "reason", None):
+        argv.extend(["--reason", str(args.reason)])
     if getattr(args, "owner_approved", False):
         argv.append("--owner-approved")
     if getattr(args, "execute_live_schema_apply", False):

@@ -119,11 +119,11 @@ nac kg process-ontology-schema-apply-execution-contract --format json
 nac kg process-ontology-schema-apply-runner-dry-run --format json
 nac kg process-ontology-schema-apply-runner-dry-run-artifact --format json
 nac kg process-ontology-schema-apply-artifact-index --format json
-nac kg process-ontology-schema-apply-live-readiness-gate --format json
+nac kg process-ontology-schema-apply-live-readiness-gate --format json --workspace-id notary_team_01
 nac kg process-ontology-schema-apply-owner-gated-live-plan --format json
 nac kg process-ontology-schema-apply-owner-gated-runner-contract --format json
-nac kg process-ontology-schema-apply-live --format json --owner-approved --execute-live-schema-apply --live-readiness-gate out/notary-kg/process-ontology-schema-apply-live-readiness-gate.redacted.json --correlation-id nac-schema-apply-live --write-redacted-evidence
-nac kg process-ontology-schema-apply-live-dispatch --format json --owner-approved --execute-live-schema-apply --live-readiness-gate out/notary-kg/process-ontology-schema-apply-live-readiness-gate.redacted.json --correlation-id nac-schema-apply-live-dispatch --write-redacted-evidence
+nac kg process-ontology-schema-apply-live --format json --workspace-id notary_team_01 --owner-approved --owner-approval-reference <approval-reference> --reason "Approved schema apply for workspace rollout" --execute-live-schema-apply --live-readiness-gate out/notary-kg/process-ontology-schema-apply-live-readiness-gate.redacted.json --correlation-id nac-schema-apply-live --write-redacted-evidence
+nac kg process-ontology-schema-apply-live-dispatch --format json --workspace-id notary_team_01 --owner-approved --owner-approval-reference <approval-reference> --reason "Approved schema apply for workspace rollout" --execute-live-schema-apply --live-readiness-gate out/notary-kg/process-ontology-schema-apply-live-readiness-gate.redacted.json --correlation-id nac-schema-apply-live-dispatch --write-redacted-evidence
 nac kg ontology-scale-budget --format json
 nac kg deep-process-candidates --format json
 nac kg first-wave-bpmn-outline --format json

@@ -34,13 +34,14 @@ Schrittzahlen, Redaktionsflags und die Markierung
 Standardordner noch kein Dry-Run-Artefakt liegt, erzeugt der Befehl dieses
 Standardartefakt offline nach.
 
-`nac kg process-ontology-schema-apply-live-readiness-gate --format json`
-schreibt daraus ein letztes Offline-Gate vor einem späteren echten
-SharePoint-Schema-Apply. Das Gate prüft, ob Execution Contract,
-Workspace-Readiness, Runner-Dry-Run, redigierter Artefaktindex,
-Redaktionsgrenze und Owner-Gate vollständig vorliegen. Der Befehl schreibt
-zusätzlich den redigierten Artefaktindex, falls er im gewählten
-Artefaktverzeichnis noch nicht vorhanden ist.
+`nac kg process-ontology-schema-apply-live-readiness-gate --format json
+--workspace-id notary_team_01` schreibt daraus ein letztes Offline-Gate vor
+einem späteren echten SharePoint-Schema-Apply. Dieser Slice akzeptiert bewusst
+nur `notary_team_01`; das Gate bindet genau diesen freigegebenen Workspace. Das
+Gate prüft, ob Execution Contract, Workspace-Readiness, Runner-Dry-Run,
+redigierter Artefaktindex, Redaktionsgrenze und Owner-Gate vollständig
+vorliegen. Der Befehl schreibt zusätzlich den redigierten Artefaktindex, falls
+er im gewählten Artefaktverzeichnis noch nicht vorhanden ist.
 
 `nac kg process-ontology-schema-apply-owner-gated-live-plan --format json`
 schreibt den nächsten Offline-Vertrag für die spätere Live-Ausführung. Der
@@ -57,14 +58,19 @@ redigierte Evidence. Der Vertrag markiert den Live-Runner-Befehl als
 implementiert, führt aber selbst keine Graph-Requests aus.
 
 `nac kg process-ontology-schema-apply-live --format json --owner-approved
+--workspace-id notary_team_01 --owner-approval-reference <approval-reference>
+--reason "Freigegebener Schema-Apply für Workspace-Rollout"
 --execute-live-schema-apply --live-readiness-gate <gate.json>
 --correlation-id <id> --write-redacted-evidence` schreibt den owner-gated
 Live-Runner-Envelope. Der Befehl blockt ohne vollständige Pflichtflags oder
-ohne bestandenes Live-Readiness-Gate. Mit vollständigem Gate erzeugt er die
-redigierte Start-Evidence für den Graph-REST-Dispatch, führt in diesem Slice
-aber noch keine Graph-Requests aus und ändert kein SharePoint-Schema.
+ohne bestandenes, für `notary_team_01` gebundenes Live-Readiness-Gate. Mit
+vollständigem Gate erzeugt er die redigierte Start-Evidence für den
+Graph-REST-Dispatch, führt in diesem Slice aber noch keine Graph-Requests aus
+und ändert kein SharePoint-Schema.
 
 `nac kg process-ontology-schema-apply-live-dispatch --owner-approved
+--workspace-id notary_team_01 --owner-approval-reference <approval-reference>
+--reason "Freigegebener Schema-Apply für Workspace-Rollout"
 --execute-live-schema-apply --live-readiness-gate <gate.json>
 --correlation-id <id> --write-redacted-evidence` ist der owner-gated
 Graph-REST-Dispatcher hinter diesem Envelope. Er nutzt nur Microsoft Graph

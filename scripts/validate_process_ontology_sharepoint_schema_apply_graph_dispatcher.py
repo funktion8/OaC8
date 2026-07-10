@@ -109,15 +109,21 @@ def main() -> int:
             artifact_root,
             gate_json,
             gate_md,
+            workspace_ids=["notary_team_01"],
         )
         payload = run_process_ontology_sharepoint_schema_apply_graph_dispatcher(
             FakeGraphDispatcherClient(),
             REPO_ROOT,
             live_readiness_gate=gate_json,
+            workspace_id="notary_team_01",
             correlation_id="nac-schema-apply-graph-dispatcher-validator",
+            owner_approval_reference="owner-approval-graph-dispatcher-validator",
+            reason="Validate bound Graph dispatcher",
             owner_approved=True,
             execute_live_schema_apply=True,
             write_redacted_evidence=True,
+            evidence_json_output=dispatch_json,
+            evidence_markdown_output=dispatch_md,
         )
         validation = validate_process_ontology_sharepoint_schema_apply_graph_dispatcher(payload)
         errors.extend(validation.errors)
@@ -125,8 +131,8 @@ def main() -> int:
             errors.append("unexpected graph dispatcher schema version")
         if payload.get("status") != "PASSED":
             errors.append("graph dispatcher fake-client run must pass")
-        if payload.get("summary", {}).get("dispatched_step_count") != 68:
-            errors.append("graph dispatcher must cover all 68 apply steps")
+        if payload.get("summary", {}).get("dispatched_step_count") != 34:
+            errors.append("graph dispatcher must cover all 34 notary_team_01 apply steps")
         if payload.get("summary", {}).get("mutation_request_count", 0) < 1:
             errors.append("graph dispatcher must execute at least one mutation")
 
@@ -136,14 +142,17 @@ def main() -> int:
             dispatch_json,
             dispatch_md,
             live_readiness_gate=gate_json,
+            workspace_id="notary_team_01",
             correlation_id="nac-schema-apply-graph-dispatcher-artifact-validator",
+            owner_approval_reference="owner-approval-graph-dispatcher-artifact-validator",
+            reason="Validate partial Graph dispatcher artifact",
             owner_approved=True,
             execute_live_schema_apply=True,
             write_redacted_evidence=True,
             max_steps=2,
         )
-        if artifact_payload.get("status") != "PASSED":
-            errors.append("graph dispatcher artifact run must pass")
+        if artifact_payload.get("status") != "PARTIAL":
+            errors.append("limited graph dispatcher artifact run must be partial")
         if not dispatch_json.is_file():
             errors.append("JSON graph dispatcher artifact was not written")
         if not dispatch_md.is_file():

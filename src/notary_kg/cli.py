@@ -206,6 +206,12 @@ def build_parser() -> argparse.ArgumentParser:
         help="Write an offline readiness gate before a future owner-gated Graph REST schema apply.",
     )
     process_ontology_schema_apply_live_readiness_gate.add_argument(
+        "--workspace-id",
+        choices=["notary_team_01"],
+        required=True,
+        help="Explicit live-apply workspace. This slice only enables notary_team_01.",
+    )
+    process_ontology_schema_apply_live_readiness_gate.add_argument(
         "--artifact-root",
         type=Path,
         default=None,
@@ -308,6 +314,12 @@ def build_parser() -> argparse.ArgumentParser:
         help="Write the owner-gated live runner envelope for the Graph REST schema apply.",
     )
     process_ontology_schema_apply_live.add_argument(
+        "--workspace-id",
+        choices=["notary_team_01"],
+        required=True,
+        help="Single workspace ID bound by the live-readiness gate.",
+    )
+    process_ontology_schema_apply_live.add_argument(
         "--artifact-root",
         type=Path,
         default=None,
@@ -323,6 +335,16 @@ def build_parser() -> argparse.ArgumentParser:
         "--correlation-id",
         default=None,
         help="Non-secret correlation ID for the owner-gated run.",
+    )
+    process_ontology_schema_apply_live.add_argument(
+        "--owner-approval-reference",
+        required=True,
+        help="Non-secret reference to the recorded owner approval.",
+    )
+    process_ontology_schema_apply_live.add_argument(
+        "--reason",
+        required=True,
+        help="Reason for the approved live schema apply.",
     )
     process_ontology_schema_apply_live.add_argument(
         "--owner-approved",
@@ -362,6 +384,12 @@ def build_parser() -> argparse.ArgumentParser:
         help="Execute the owner-gated Graph REST dispatcher for the SharePoint schema apply.",
     )
     process_ontology_schema_apply_live_dispatch.add_argument(
+        "--workspace-id",
+        choices=["notary_team_01"],
+        required=True,
+        help="Single workspace ID bound by the live-readiness gate.",
+    )
+    process_ontology_schema_apply_live_dispatch.add_argument(
         "--live-readiness-gate",
         type=Path,
         required=True,
@@ -371,6 +399,16 @@ def build_parser() -> argparse.ArgumentParser:
         "--correlation-id",
         required=True,
         help="Non-secret correlation ID for the owner-gated Graph REST dispatch.",
+    )
+    process_ontology_schema_apply_live_dispatch.add_argument(
+        "--owner-approval-reference",
+        required=True,
+        help="Non-secret reference to the recorded owner approval.",
+    )
+    process_ontology_schema_apply_live_dispatch.add_argument(
+        "--reason",
+        required=True,
+        help="Reason for the approved live schema apply dispatch.",
     )
     process_ontology_schema_apply_live_dispatch.add_argument(
         "--owner-approved",
@@ -582,6 +620,7 @@ def main(argv: list[str] | None = None) -> int:
             args.artifact_root,
             args.output,
             args.markdown_output,
+            workspace_ids=[args.workspace_id],
             ensure_default_artifacts=not args.no_ensure_default_artifacts,
         )
         _print_payload(payload, args.format)
@@ -616,7 +655,10 @@ def main(argv: list[str] | None = None) -> int:
             args.output,
             args.markdown_output,
             live_readiness_gate=args.live_readiness_gate,
+            workspace_id=args.workspace_id,
             correlation_id=args.correlation_id,
+            owner_approval_reference=args.owner_approval_reference,
+            reason=args.reason,
             owner_approved=args.owner_approved,
             execute_live_schema_apply=args.execute_live_schema_apply,
             write_redacted_evidence=args.write_redacted_evidence,
@@ -633,7 +675,10 @@ def main(argv: list[str] | None = None) -> int:
             args.output,
             args.markdown_output,
             live_readiness_gate=args.live_readiness_gate,
+            workspace_id=args.workspace_id,
             correlation_id=args.correlation_id,
+            owner_approval_reference=args.owner_approval_reference,
+            reason=args.reason,
             owner_approved=args.owner_approved,
             execute_live_schema_apply=args.execute_live_schema_apply,
             write_redacted_evidence=args.write_redacted_evidence,
