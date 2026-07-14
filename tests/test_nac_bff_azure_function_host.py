@@ -481,6 +481,11 @@ import types
 
 package_root = Path(sys.argv[1]).resolve()
 repo_src = Path(sys.argv[2]).resolve()
+sys.path[:] = [
+    entry
+    for entry in sys.path
+    if not entry or Path(entry).resolve() != repo_src
+]
 assert repo_src not in (Path(entry).resolve() for entry in sys.path if entry)
 sys.path.insert(0, str(package_root))
 
@@ -526,7 +531,7 @@ assert captured == {
     "http_auth_level": AuthLevel.ANONYMOUS,
 }
 """
-            subprocess.run(
+            completed = subprocess.run(
                 [
                     sys.executable,
                     "-I",
@@ -536,9 +541,14 @@ assert captured == {
                     str(SRC_ROOT),
                 ],
                 cwd=temporary_root,
-                check=True,
+                check=False,
                 capture_output=True,
                 text=True,
+            )
+            self.assertEqual(
+                completed.returncode,
+                0,
+                msg=completed.stderr or completed.stdout,
             )
 
 
