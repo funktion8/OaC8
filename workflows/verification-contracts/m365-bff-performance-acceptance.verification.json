@@ -1,0 +1,144 @@
+{
+  "schema_version": "nac.verification-contract/v0.1",
+  "contract_id": "verification.m365_bff_performance_acceptance",
+  "domain_contract_id": "m365.bff_performance_acceptance",
+  "title": "M365 BFF Performance Acceptance Verification",
+  "status": "planned_contract_slice",
+  "leading_issue": "https://github.com/notariat8/NaC/issues/731",
+  "applies_when": {
+    "paths": [
+      "workflows/contracts/m365-bff-performance-acceptance.contract.json",
+      "workflows/verification-contracts/m365-bff-performance-acceptance.verification.json",
+      "docs/de/operations/m365-bff-performance-acceptance.md",
+      "docs/en/operations/m365-bff-performance-acceptance.md"
+    ]
+  },
+  "required_context": {
+    "always_on": [
+      "AGENTS.md",
+      "policies/process-policy.yaml",
+      "policies/data-protection-policy.yaml"
+    ],
+    "scoped": [
+      "workflows/contracts/AGENTS.md",
+      "docs/AGENTS.md"
+    ],
+    "on_demand": [
+      "workflows/contracts/m365-azure-bff-live-activation.contract.json",
+      "workflows/contracts/workbench-live-read-binding.contract.json",
+      "docs/de/operations/m365-bff-performance-acceptance.md",
+      "docs/en/operations/m365-bff-performance-acceptance.md"
+    ],
+    "runtime": [
+      "fresh JSON parse output",
+      "PASSED redacted activation evidence",
+      "authoritative tenant SharePoint tier, request allowance and resource-unit allowance evidence",
+      "Azure Monitor execution-unit and Always Ready evidence",
+      "owner approval binding",
+      "redacted resumable phase state"
+    ]
+  },
+  "checks": [
+    "python3 -m json.tool workflows/contracts/m365-bff-performance-acceptance.contract.json",
+    "python3 -m json.tool workflows/verification-contracts/m365-bff-performance-acceptance.verification.json",
+    "git diff --check"
+  ],
+  "implementation_checks_deferred_until_runtime_slice": [
+    "fake-clock and fake-transport global dispatch ceiling tests",
+    "authoritative tier and allowance BLOCKED-state tests",
+    "request and resource-unit 50-percent load calculation tests",
+    "Azure Monitor 120000 GB-s and AlwaysReadyUnits zero tests",
+    "no-retry auth, redirect, throttle and target-drift abort tests",
+    "server instance/start-epoch VERIFIED versus INCONCLUSIVE tests",
+    "restart-safe phase-state tests",
+    "aggregate-only evidence and recursive redaction tests",
+    "CLI contract, strict quality gate and independent review"
+  ],
+  "invariants": [
+    "The only target is the fixed HTTPS workbench-snapshot GET for notary_team_01 and NAC-SYN-MATTER-001.",
+    "All phase dispatches share one inclusive ceiling of exactly 50000 target dispatches.",
+    "No phase receives an unconditional 50000-request allocation.",
+    "Every failed, timed-out, authentication-failed, redirected, throttled or aborted target attempt consumes the global dispatch budget.",
+    "Client retries and automatic redirect following are disabled.",
+    "Without current authoritative tenant SharePoint tier, request allowance and resource-unit allowance evidence, preflight status is BLOCKED.",
+    "Baseline plus planned load remains at or below 50 percent of both verified tenant allowances in every applicable authoritative allowance window.",
+    "Azure Monitor execution units never exceed 120000 GB-s and AlwaysReadyUnits is exactly zero.",
+    "Cold start is VERIFIED only when server instance or start epoch changes; every other outcome is INCONCLUSIVE.",
+    "Authentication failure, redirect, throttle signal or target drift aborts without retry.",
+    "Evidence contains aggregates only and no per-request record or raw response, token, body, URL, tenant, user, instance or epoch identifier.",
+    "No phase writes, rolls back, deletes, changes permissions or credentials, or restarts, scales or reconfigures infrastructure.",
+    "Live execution remains owner-gated and bound to PASSED activation evidence and immutable capacity and phase-plan hashes.",
+    "Invalid preflight, state, target or evidence fails closed before another dispatch."
+  ],
+  "thresholds": {
+    "global_target_dispatch_ceiling_exact_inclusive": 50000,
+    "client_retries_maximum": 0,
+    "automatic_redirects_followed_maximum": 0,
+    "tenant_verified_request_allowance_fraction_maximum": 0.5,
+    "tenant_verified_resource_unit_allowance_fraction_maximum": 0.5,
+    "authoritative_capacity_evidence_age_seconds_maximum": 86400,
+    "azure_monitor_execution_units_gb_seconds_maximum_inclusive": 120000,
+    "always_ready_units_exact": 0,
+    "client_concurrency_maximum": 16,
+    "response_wire_bytes_maximum": 1048576,
+    "error_rate_maximum": 0.0,
+    "all_phase_request_latency_ms_maximum": 10000,
+    "volume_latency_p95_ms_maximum": 1000,
+    "volume_latency_p99_ms_maximum": 2000,
+    "sustained_latency_p95_ms_maximum": 1000,
+    "sustained_latency_p99_ms_maximum": 2000,
+    "soak_latency_p95_ms_maximum": 1500,
+    "soak_latency_p99_ms_maximum": 3000,
+    "idle_observation_seconds_exact": 1200,
+    "idle_assessment_dispatches_exact": 1,
+    "sustained_active_duration_seconds_maximum": 7200,
+    "sustained_configured_requests_per_second_maximum": 4,
+    "soak_active_duration_seconds_maximum": 86400,
+    "soak_request_interval_seconds_minimum": 60,
+    "soak_dispatch_allocation_maximum": 1440,
+    "writes_rollbacks_deletes_permission_credential_or_infrastructure_changes_maximum": 0
+  },
+  "required_evidence": [
+    "authoritative_tenant_capacity_preflight_aggregate",
+    "passed_activation_hash_binding",
+    "owner_approval_binding_sha256",
+    "target_binding_sha256",
+    "capacity_preflight_sha256",
+    "phase_plan_sha256",
+    "global_dispatch_aggregate",
+    "resumable_phase_state_aggregate",
+    "phase_aggregate_metrics",
+    "cold_start_classification",
+    "azure_monitor_execution_unit_aggregate",
+    "abort_aggregate",
+    "final_redacted_json",
+    "final_redacted_markdown"
+  ],
+  "pass_condition": {
+    "documentation_slice_checks_pass": true,
+    "future_preflight_status_exact": "READY",
+    "future_activation_status_exact": "PASSED",
+    "future_owner_and_hash_bindings_valid": true,
+    "global_target_dispatches_at_or_below_50000": true,
+    "tenant_request_and_resource_unit_load_at_or_below_half_verified_allowance": true,
+    "azure_execution_units_at_or_below_120000_gb_seconds": true,
+    "always_ready_units_exact": 0,
+    "no_abort_condition_observed": true,
+    "cold_start_verified_only_on_server_instance_or_start_epoch_change": true,
+    "cold_start_inconclusive_allowed_without_verified_claim": true,
+    "all_required_evidence_present_aggregate_only_and_redacted": true,
+    "no_prohibited_action": true
+  },
+  "failure_behavior": {
+    "json_parse_or_contract_failure": "block_contract_slice_completion",
+    "missing_stale_non_authoritative_or_mismatched_capacity_evidence": "BLOCKED",
+    "load_above_half_verified_request_or_resource_unit_allowance": "BLOCKED",
+    "always_ready_units_nonzero_or_execution_units_above_cap": "BLOCKED_or_abort",
+    "owner_activation_target_or_state_binding_failure": "BLOCKED_before_network",
+    "auth_redirect_throttle_or_target_drift": "abort_without_retry",
+    "global_dispatch_ceiling_reached": "abort_before_next_dispatch",
+    "raw_or_per_request_evidence_detected": "reject_artifact_and_fail_closed",
+    "server_instance_or_start_epoch_change_not_proven": "INCONCLUSIVE",
+    "prohibited_action_requested_or_observed": "stop_and_fail_acceptance"
+  }
+}
